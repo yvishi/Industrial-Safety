@@ -1,6 +1,7 @@
 export * from './Button'
 export * from './Card'
 export * from './Badge'
+export * from './Breadcrumbs'
 export * from './StatusPill'
 export * from './Input'
 export * from './Modal'

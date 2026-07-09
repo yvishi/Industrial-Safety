@@ -1,21 +1,13 @@
-import { useLocation } from 'react-router-dom'
 import { Search, Bell, Sun, User } from 'lucide-react'
-import { NAV_ITEMS } from '@/app/navigation'
-
-function useCurrentPageTitle(): string {
-  const { pathname } = useLocation()
-  const match = NAV_ITEMS.find((item) =>
-    item.path === '/' ? pathname === '/' : pathname.startsWith(item.path),
-  )
-  return match?.label ?? 'Not Found'
-}
+import { useBreadcrumbs } from '@/hooks/useBreadcrumbs'
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 
 export function Topbar() {
-  const pageTitle = useCurrentPageTitle()
+  const breadcrumbs = useBreadcrumbs()
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-surface px-4 sm:px-6">
-      <h1 className="text-sm font-semibold text-text-primary">{pageTitle}</h1>
+      <Breadcrumbs items={breadcrumbs} />
 
       <div className="ml-2 hidden max-w-md flex-1 items-center gap-2 rounded-md border border-border bg-surface-sunken px-3 py-1.5 text-sm text-text-muted sm:flex">
         <Search className="h-4 w-4 shrink-0" aria-hidden="true" />

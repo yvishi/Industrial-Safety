@@ -7,3 +7,7 @@ export const ROUTES = {
   reports: '/reports',
   settings: '/settings',
 } as const
+
+export function buildZonePath(zoneId: string): string {
+  return `${ROUTES.plant}/zones/${zoneId}`
+}
