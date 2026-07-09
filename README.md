@@ -1,32 +1,90 @@
-# React + TypeScript + Vite
+# Industrial Safety Intelligence Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+An enterprise-style operational view of an industrial plant: zones, workers, equipment,
+sensors, and permits-to-work, continuously evolved by a backend simulation engine.
 
-Currently, two official plugins are available:
+- **Frontend** (`src/`) — React + TypeScript + Vite + Tailwind, enterprise design system, the Plant module
+- **Backend** (`backend/`) — FastAPI + SQLAlchemy (async) + PostgreSQL + a tick-based plant simulator
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The frontend polls the backend every 5 seconds, so once both are running the plant genuinely
+changes on its own — sensor readings drift, workers move between zones, equipment cycles
+through maintenance, permits progress through their lifecycle.
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Node.js** 20+ and npm
+- **Python** 3.12+ and [uv](https://docs.astral.sh/uv/)
+- **PostgreSQL** 14+ running locally. This machine has it installed via `winget install PostgreSQL.PostgreSQL.17`
+  as the `postgresql-x64-17` Windows service (starts automatically — nothing to do). On a
+  different machine, either install Postgres the same way or run `docker compose up -d`
+  from `backend/` (see `backend/docker-compose.yml`).
 
-## Expanding the Oxlint configuration
+## Running the local testing environment
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+Two terminals: one for the backend, one for the frontend.
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+### 1. Backend
+
+```bash
+cd backend
+uv sync --group dev
+cp .env.example .env          # adjust DATABASE_URL if your Postgres differs
+uv run alembic upgrade head   # create/update the schema
+uv run python -m scripts.seed # populate a fictional plant (safe to skip if already seeded)
+uv run uvicorn app.main:app --reload
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+- API: http://localhost:8000/api/v1
+- Interactive docs: http://localhost:8000/docs
+- The simulation engine starts automatically with the API (`SIMULATION_ENABLED=true` by
+  default) and ticks every 5 seconds — see `backend/README.md` for what it actually does.
+
+### 2. Frontend
+
+From the repo root:
+
+```bash
+cp .env.example .env   # only needed once — points the app at the backend above
+npm install
+npm run dev
+```
+
+Open http://localhost:5173, then go to **Plant** in the sidebar. Data updates on its own
+every few seconds; watch a zone's sensor values or worker list change between refreshes.
+
+### Resetting the simulated data
+
+The simulator continuously mutates the database, so after a while it'll have drifted well
+past the original seed. To start over:
+
+```bash
+# from backend/, with the API stopped or at least momentarily quiesced
+export PATH="/c/Program Files/PostgreSQL/17/bin:$PATH"   # if psql isn't already on PATH
+PGPASSWORD=postgres psql -U postgres -h localhost -d industrial_safety -c "TRUNCATE plants CASCADE;"
+uv run python -m scripts.seed
+```
+
+## Testing
+
+```bash
+cd backend && uv run pytest    # backend: pytest against an in-memory SQLite fixture
+npx tsc -b && npm run build    # frontend: type-check + production build (no test suite yet)
+```
+
+## Project structure
+
+```
+src/                    Frontend (see src/features/plant/ for the one real feature module)
+backend/                Backend (see backend/README.md for its architecture and API)
+.env.example            Frontend env template (VITE_API_BASE_URL)
+backend/.env.example    Backend env template (DATABASE_URL, simulation settings)
+```
+
+## Linting
+
+```bash
+npm run lint   # oxlint
+```
+
+Type-aware lint rules are available but not enabled by default — see `.oxlintrc.json` and the
+[Oxlint docs](https://oxc.rs/docs/guide/usage/linter/rules) if you want to turn them on.
