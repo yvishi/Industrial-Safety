@@ -254,8 +254,10 @@ async def seed() -> None:
         workers_by_employee_id: dict[str, Worker] = {}
         for data in WORKERS:
             zone_code = data.pop("zone")
+            zone_id = zones_by_code[zone_code].id if zone_code else None
             worker = Worker(
-                primary_zone_id=zones_by_code[zone_code].id if zone_code else None,
+                primary_zone_id=zone_id,
+                current_zone_id=zone_id,  # everyone starts at their station
                 employment_status=data.pop("employment_status", "active"),
                 **data,
             )

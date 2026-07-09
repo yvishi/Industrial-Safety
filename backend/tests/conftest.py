@@ -2,7 +2,11 @@ from collections.abc import AsyncGenerator
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.pool import StaticPool
 
 from app.database.session import get_db
@@ -11,23 +15,27 @@ from app.models import Base
 
 # In-memory SQLite for tests: fast, no external service required. The schema avoids
 # Postgres-only column types for exactly this reason (see app/database/base.py).
+# Note: ASGITransport does not run the app lifespan, so the simulator never starts in tests.
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 
 @pytest_asyncio.fixture
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
+async def session_factory() -> AsyncGenerator[async_sessionmaker, None]:
     engine = create_async_engine(
         TEST_DATABASE_URL, connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    session_factory = async_sessionmaker(bind=engine, expire_on_commit=False)
-
-    async with session_factory() as session:
-        yield session
+    yield async_sessionmaker(bind=engine, expire_on_commit=False)
 
     await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def db_session(session_factory: async_sessionmaker) -> AsyncGenerator[AsyncSession, None]:
+    async with session_factory() as session:
+        yield session
 
 
 @pytest_asyncio.fixture

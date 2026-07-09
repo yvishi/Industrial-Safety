@@ -37,7 +37,9 @@ class Zone(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     grid_col: Mapped[int | None] = mapped_column(Integer)
 
     plant: Mapped["Plant"] = relationship(back_populates="zones")
-    workers: Mapped[list["Worker"]] = relationship(back_populates="primary_zone")
+    workers: Mapped[list["Worker"]] = relationship(
+        back_populates="primary_zone", foreign_keys="Worker.primary_zone_id"
+    )
     equipment: Mapped[list["Equipment"]] = relationship(
         back_populates="zone", cascade="all, delete-orphan"
     )

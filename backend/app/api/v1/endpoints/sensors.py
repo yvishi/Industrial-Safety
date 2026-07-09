@@ -5,7 +5,13 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.api.deps import get_sensor_service
 from app.schemas.common import Page
-from app.schemas.sensor import SensorCreate, SensorRead, SensorType, SensorUpdate
+from app.schemas.sensor import (
+    SensorCreate,
+    SensorRead,
+    SensorReadingRead,
+    SensorType,
+    SensorUpdate,
+)
 from app.services.sensor import SensorService
 
 router = APIRouter(prefix="/sensors", tags=["sensors"])
@@ -35,6 +41,16 @@ async def list_sensors(
 @router.get("/{sensor_id}", response_model=SensorRead)
 async def get_sensor(sensor_id: UUID, service: SensorServiceDep) -> SensorRead:
     return await service.get(sensor_id)
+
+
+@router.get("/{sensor_id}/readings", response_model=list[SensorReadingRead])
+async def get_sensor_readings(
+    sensor_id: UUID,
+    service: SensorServiceDep,
+    minutes: Annotated[int, Query(ge=1, le=24 * 60)] = 60,
+) -> list[SensorReadingRead]:
+    """Reading history for one sensor over the last N minutes, oldest first."""
+    return await service.get_readings(sensor_id, minutes=minutes)
 
 
 @router.post("", response_model=SensorRead, status_code=status.HTTP_201_CREATED)

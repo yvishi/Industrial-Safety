@@ -1,3 +1,8 @@
+import asyncio
+import contextlib
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,11 +12,36 @@ from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    settings = get_settings()
+    simulation_task: asyncio.Task | None = None
+
+    if settings.simulation_enabled:
+        # Imported here so the API can start (and tests can run) without the simulator.
+        from app.database.session import AsyncSessionLocal
+        from app.simulation.engine import SimulationEngine
+
+        engine = SimulationEngine(
+            AsyncSessionLocal,
+            tick_seconds=settings.simulation_tick_seconds,
+            retention_hours=settings.sensor_reading_retention_hours,
+        )
+        simulation_task = asyncio.create_task(engine.run())
+
+    yield
+
+    if simulation_task is not None:
+        simulation_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await simulation_task
+
+
 def create_app() -> FastAPI:
     configure_logging()
     settings = get_settings()
 
-    app = FastAPI(title=settings.app_name)
+    app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
     app.add_middleware(
         CORSMiddleware,

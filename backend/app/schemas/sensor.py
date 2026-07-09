@@ -1,10 +1,10 @@
-from datetime import date
+from datetime import date, datetime
 from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel
 
-from app.schemas.common import TimestampedRead
+from app.schemas.common import ORMBase, TimestampedRead
 
 
 class SensorType(str, Enum):
@@ -49,4 +49,13 @@ class SensorUpdate(BaseModel):
 
 
 class SensorRead(SensorBase, TimestampedRead):
-    pass
+    # Latest simulated reading — read-only through the API.
+    last_value: float | None = None
+    last_reading_at: datetime | None = None
+
+
+class SensorReadingRead(ORMBase):
+    id: UUID
+    sensor_id: UUID
+    value: float
+    recorded_at: datetime

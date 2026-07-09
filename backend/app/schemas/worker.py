@@ -54,4 +54,5 @@ class WorkerUpdate(BaseModel):
 
 
 class WorkerRead(WorkerBase, TimestampedRead):
-    pass
+    # Live location, written by the simulation engine — read-only through the API.
+    current_zone_id: UUID | None = None

@@ -22,11 +22,19 @@ class Worker(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     employment_status: Mapped[str] = mapped_column(String(30), default="active")
     shift: Mapped[str | None] = mapped_column(String(20))
 
+    # Static org assignment — where this worker is normally stationed.
     primary_zone_id: Mapped[UUIDType | None] = mapped_column(
         ForeignKey("zones.id"), index=True, nullable=True
     )
+    # Live location, driven by the simulation engine (and later by real tracking systems).
+    current_zone_id: Mapped[UUIDType | None] = mapped_column(
+        ForeignKey("zones.id"), index=True, nullable=True
+    )
 
-    primary_zone: Mapped["Zone | None"] = relationship(back_populates="workers")
+    primary_zone: Mapped["Zone | None"] = relationship(
+        back_populates="workers", foreign_keys=[primary_zone_id]
+    )
+    current_zone: Mapped["Zone | None"] = relationship(foreign_keys=[current_zone_id])
 
     requested_permits: Mapped[list["Permit"]] = relationship(
         back_populates="requested_by", foreign_keys="Permit.requested_by_id"

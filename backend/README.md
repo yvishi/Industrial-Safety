@@ -1,8 +1,10 @@
 # Backend
 
 FastAPI + SQLAlchemy 2.0 (async) + Alembic backend for the Industrial Safety Intelligence
-Platform. This is the data-access foundation: plants, zones, workers, equipment, sensors,
-permits, and an activity log — structural/CRUD data only. No auth, no AI, no computed risk state.
+Platform: plants, zones, workers, equipment, sensors, permits, an activity log, and a
+**plant simulation engine** that continuously evolves the operational state (sensor telemetry,
+worker movement, equipment lifecycle, permit workflow) and persists it to Postgres.
+No auth, no AI, no computed risk state.
 
 ## Stack
 
@@ -23,6 +25,11 @@ app/
   schemas/            Pydantic Create/Update/Read models + enums (validation boundary)
   repositories/        SQLAlchemy queries, one class per entity + a generic CRUD base
   services/            not-found/conflict rules + orchestration above repositories
+  simulation/          plant simulation engine (never imports from api/)
+    profiles.py        per-sensor-type physics: baseline, noise, warning levels
+    behaviors/         sensors, workers, equipment, permits — one module each
+    engine.py          the tick loop; one transaction per tick
+    runner.py          standalone entrypoint (python -m app.simulation.runner)
 alembic/              migrations
 scripts/seed.py        populates a believable fictional plant
 tests/                  pytest + httpx, SQLite-backed
@@ -56,6 +63,33 @@ uv run uvicorn app.main:app --reload
 - API: http://localhost:8000/api/v1
 - Interactive docs: http://localhost:8000/docs
 - Health check: http://localhost:8000/health
+
+## Simulation
+
+The simulator runs inside the API process by default (`SIMULATION_ENABLED=true`), ticking
+every `SIMULATION_TICK_SECONDS` (default 5s):
+
+- **Sensors** take a mean-reverting random-walk step each tick; occasional controlled
+  excursions climb toward the warning level and recover. Band crossings emit
+  `sensor_warning` / `sensor_recovered` events — raw readings are never events.
+- **Workers** move between grid-adjacent zones with a homing bias toward their station.
+- **Equipment** transitions operational/standby/under_maintenance with realistic dwell
+  times; safety-critical assets never stop.
+- **Permits** walk draft -> pending -> approved -> active -> closed/expired, and new
+  realistic permits appear over time.
+
+Every meaningful change is committed in the same transaction as its Event row.
+Readings are pruned past `SENSOR_READING_RETENTION_HOURS` (default 24h).
+
+To run the simulator as its own process instead, set `SIMULATION_ENABLED=false` in `.env`
+and start `uv run python -m app.simulation.runner` alongside uvicorn.
+
+Key read endpoints for the frontend:
+
+- `GET /api/v1/state` — aggregate live snapshot (zones with occupants, equipment,
+  latest sensor values, active permits, recent events)
+- `GET /api/v1/sensors/{id}/readings?minutes=60` — reading history, oldest first
+- `GET /api/v1/events?page_size=50` — newest first
 
 ## Test
 

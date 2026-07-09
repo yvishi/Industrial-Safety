@@ -17,6 +17,8 @@ class BaseRepository(Generic[ModelType]):
     """
 
     model: type[ModelType]
+    # Column expressions applied to every list() query, e.g. (Model.occurred_at.desc(),).
+    default_order_by: tuple[Any, ...] = ()
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
@@ -36,6 +38,8 @@ class BaseRepository(Generic[ModelType]):
             await self.session.execute(select(func.count()).select_from(stmt.subquery()))
         ).scalar_one()
 
+        if self.default_order_by:
+            stmt = stmt.order_by(*self.default_order_by)
         stmt = stmt.offset((page - 1) * page_size).limit(page_size)
         items = (await self.session.execute(stmt)).scalars().all()
         return list(items), total
