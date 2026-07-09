@@ -1,10 +1,11 @@
+import { Users } from 'lucide-react'
 import { ZoneCard } from './ZoneCard'
-import type { Zone } from '../types/zone'
+import type { ZoneState } from '../types/state'
 import { buildZonePath } from '@/app/routes'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 
 export interface ZoneGridProps {
-  zones: Zone[]
+  zones: ZoneState[]
 }
 
 /**
@@ -14,18 +15,26 @@ export interface ZoneGridProps {
  */
 export function ZoneGrid({ zones }: ZoneGridProps) {
   const isSpatialLayout = useMediaQuery('(min-width: 1024px)')
-  const columnCount = zones.reduce((max, zone) => Math.max(max, zone.gridPosition.col), 1)
+  const columnCount = zones.reduce((max, { zone }) => Math.max(max, zone.gridPosition.col), 1)
 
   return (
     <div
       className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
       style={isSpatialLayout ? { gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` } : undefined}
     >
-      {zones.map((zone) => (
+      {zones.map(({ zone, workers }) => (
         <ZoneCard
           key={zone.id}
           zone={zone}
           to={buildZonePath(zone.id)}
+          metricsSlot={
+            <div className="flex items-center gap-1.5 text-xs text-text-muted">
+              <Users className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>
+                {workers.length} {workers.length === 1 ? 'worker' : 'workers'}
+              </span>
+            </div>
+          }
           style={
             isSpatialLayout
               ? { gridColumn: zone.gridPosition.col, gridRow: zone.gridPosition.row }

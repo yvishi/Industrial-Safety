@@ -2,23 +2,23 @@ import { Radio, Cog, Zap, Cylinder, Gauge, Truck, Flame, type LucideIcon } from 
 import type { ZoneType } from '../types/zone'
 
 const ZONE_TYPE_ICON: Record<ZoneType, LucideIcon> = {
-  'control-room': Radio,
-  'processing-unit': Cog,
+  control_room: Radio,
+  processing_unit: Cog,
   utilities: Zap,
-  'tank-farm': Cylinder,
-  'pump-station': Gauge,
-  'loading-rack': Truck,
-  'flare-stack': Flame,
+  tank_farm: Cylinder,
+  pump_station: Gauge,
+  loading_rack: Truck,
+  flare_stack: Flame,
 }
 
 export const ZONE_TYPE_LABEL: Record<ZoneType, string> = {
-  'control-room': 'Control Room',
-  'processing-unit': 'Processing Unit',
+  control_room: 'Control Room',
+  processing_unit: 'Processing Unit',
   utilities: 'Utilities',
-  'tank-farm': 'Tank Farm',
-  'pump-station': 'Pump Station',
-  'loading-rack': 'Loading Rack',
-  'flare-stack': 'Flare Stack',
+  tank_farm: 'Tank Farm',
+  pump_station: 'Pump Station',
+  loading_rack: 'Loading Rack',
+  flare_stack: 'Flare Stack',
 }
 
 export interface ZoneTypeIconProps {

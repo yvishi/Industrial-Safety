@@ -9,7 +9,6 @@ import {
   NotFoundPage,
 } from '@/pages'
 import { PlantOverviewPage, ZoneDetailPage } from '@/features/plant'
-import { getZoneById } from '@/features/plant/data/zones'
 import { ROUTES } from './routes'
 
 export const router = createBrowserRouter([
@@ -26,10 +25,9 @@ export const router = createBrowserRouter([
           {
             path: 'zones/:zoneId',
             element: <ZoneDetailPage />,
-            handle: {
-              crumb: (params: Record<string, string | undefined>) =>
-                (params.zoneId && getZoneById(params.zoneId)?.name) || 'Zone',
-            },
+            // Zone data loads async from the API — ZoneDetailPage overrides this via
+            // useBreadcrumbLabel once the zone name is known.
+            handle: { crumb: () => 'Zone' },
           },
         ],
       },

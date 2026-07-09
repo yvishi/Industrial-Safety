@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Frontend env (Vite reads .env at the repo root)
+/.env
+!/.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

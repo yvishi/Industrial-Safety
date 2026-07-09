@@ -1,11 +1,11 @@
 export type ZoneType =
-  | 'control-room'
-  | 'processing-unit'
+  | 'control_room'
+  | 'processing_unit'
   | 'utilities'
-  | 'tank-farm'
-  | 'pump-station'
-  | 'loading-rack'
-  | 'flare-stack'
+  | 'tank_farm'
+  | 'pump_station'
+  | 'loading_rack'
+  | 'flare_stack'
 
 export interface GridPosition {
   row: number
@@ -17,7 +17,7 @@ export interface Zone {
   code: string
   name: string
   zoneType: ZoneType
-  description: string
+  description: string | null
   /** Approximate physical adjacency on site, used to lay out ZoneGrid spatially on wide viewports. */
   gridPosition: GridPosition
 }

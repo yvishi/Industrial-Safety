@@ -1,34 +1,26 @@
-import { useParams, Link, Navigate } from 'react-router-dom'
-import { ArrowLeft, Radio, Users, ShieldAlert, Wrench, ScanEye, Sparkles } from 'lucide-react'
+import { useParams, useLocation, Link, Navigate } from 'react-router-dom'
+import { ArrowLeft, ScanEye, Sparkles, WifiOff } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Badge } from '@/components/ui/Badge'
 import { Section } from '@/components/ui/Section'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { ROUTES } from '@/app/routes'
-import { getZoneById } from '../data/zones'
+import { usePolling } from '@/hooks/usePolling'
+import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { ZoneTypeIcon, ZONE_TYPE_LABEL } from '../components/ZoneTypeIcon'
 import { CapabilityPlaceholder } from '../components/CapabilityPlaceholder'
+import { LiveIndicator } from '../components/LiveIndicator'
+import { PersonnelList } from '../components/PersonnelList'
+import { EquipmentList } from '../components/EquipmentList'
+import { SensorList } from '../components/SensorList'
+import { PermitList } from '../components/PermitList'
+import { ActivityList } from '../components/ActivityList'
+import { fetchPlantState, fetchZoneEvents } from '../services/plantService'
 
-const CAPABILITIES = [
-  {
-    icon: Radio,
-    title: 'Live Sensors',
-    description: 'Real-time environmental and process readings. Not yet connected.',
-  },
-  {
-    icon: Users,
-    title: 'Personnel',
-    description: 'Worker presence and access tracking. Not yet connected.',
-  },
-  {
-    icon: ShieldAlert,
-    title: 'Incidents',
-    description: 'Reported safety incidents for this zone. Not yet connected.',
-  },
-  {
-    icon: Wrench,
-    title: 'Maintenance',
-    description: 'Scheduled and open maintenance work. Not yet connected.',
-  },
+const POLL_INTERVAL_MS = 5000
+
+const UPCOMING_CAPABILITIES = [
   {
     icon: ScanEye,
     title: 'Computer Vision',
@@ -43,11 +35,45 @@ const CAPABILITIES = [
 
 export function ZoneDetailPage() {
   const { zoneId } = useParams<{ zoneId: string }>()
-  const zone = zoneId ? getZoneById(zoneId) : undefined
+  const location = useLocation()
+  const { data: state, error, isLoading } = usePolling(fetchPlantState, POLL_INTERVAL_MS)
+  const { data: events } = usePolling(
+    () => (zoneId ? fetchZoneEvents(zoneId) : Promise.resolve([])),
+    POLL_INTERVAL_MS,
+  )
 
-  if (!zone) {
+  const zoneState = state?.zones.find((entry) => entry.zone.id === zoneId)
+  useBreadcrumbLabel(location.pathname, zoneState?.zone.name)
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-4 w-32" />
+        <div className="flex flex-col gap-2 border-b border-border pb-5">
+          <Skeleton className="h-7 w-64" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <Skeleton className="h-48" />
+      </div>
+    )
+  }
+
+  if (error || !state) {
+    return (
+      <EmptyState
+        icon={WifiOff}
+        title="Can't reach the plant"
+        description="The backend API isn't responding. Make sure it's running, then this page will pick up automatically."
+      />
+    )
+  }
+
+  if (!zoneState) {
     return <Navigate to={ROUTES.plant} replace />
   }
+
+  const { zone, workers, equipment, sensors } = zoneState
+  const activePermits = state.activePermits.filter((permit) => permit.zoneId === zone.id)
 
   return (
     <div className="flex flex-col gap-6">
@@ -61,11 +87,14 @@ export function ZoneDetailPage() {
 
       <PageHeader
         title={zone.name}
-        description={zone.description}
+        description={zone.description ?? undefined}
         actions={
-          <Badge variant="neutral" className="font-mono">
-            {zone.code}
-          </Badge>
+          <div className="flex items-center gap-3">
+            <LiveIndicator generatedAt={state.generatedAt} />
+            <Badge variant="neutral" className="font-mono">
+              {zone.code}
+            </Badge>
+          </div>
         }
       />
 
@@ -76,12 +105,31 @@ export function ZoneDetailPage() {
         <Badge variant="accent">{ZONE_TYPE_LABEL[zone.zoneType]}</Badge>
       </div>
 
-      <Section
-        title="Capabilities"
-        description="Modules that will connect to this zone as the platform grows."
-      >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {CAPABILITIES.map((capability) => (
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Section title="Personnel" description="Workers currently in this zone.">
+          <PersonnelList workers={workers} />
+        </Section>
+
+        <Section title="Active Permits" description="Permits-to-work currently in force.">
+          <PermitList permits={activePermits} />
+        </Section>
+
+        <Section title="Equipment" description="Assets registered in this zone.">
+          <EquipmentList equipment={equipment} />
+        </Section>
+
+        <Section title="Sensors" description="Latest reading from each instrument.">
+          <SensorList sensors={sensors} />
+        </Section>
+      </div>
+
+      <Section title="Recent Activity" description="Latest logged events for this zone.">
+        <ActivityList events={events ?? []} />
+      </Section>
+
+      <Section title="Coming Later" description="Modules that will connect to this zone as the platform grows.">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {UPCOMING_CAPABILITIES.map((capability) => (
             <CapabilityPlaceholder key={capability.title} {...capability} />
           ))}
         </div>
