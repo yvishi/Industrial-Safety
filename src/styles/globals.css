@@ -1,0 +1,106 @@
+@import 'tailwindcss';
+
+/* Class-based dark mode: toggling `.dark` on <html> flips the tokens below. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+
+  /* Surfaces */
+  --color-bg: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f1f2f5;
+  --color-surface-sunken: #eceef1;
+
+  /* Borders */
+  --color-border: #e3e5e9;
+  --color-border-strong: #cfd2d8;
+
+  /* Text */
+  --color-text-primary: #14161a;
+  --color-text-secondary: #5c616e;
+  --color-text-muted: #8b909a;
+  --color-text-inverted: #ffffff;
+
+  /* Accent */
+  --color-accent: #2f6feb;
+  --color-accent-hover: #2758c4;
+  --color-accent-fg: #ffffff;
+  --color-accent-subtle: #eaf1fe;
+
+  /* Semantic status */
+  --color-success: #17824e;
+  --color-success-subtle: #e5f5ec;
+  --color-warning: #a3620a;
+  --color-warning-subtle: #fdf1e0;
+  --color-danger: #c0362c;
+  --color-danger-subtle: #fbeae8;
+  --color-info: #2f6feb;
+  --color-info-subtle: #eaf1fe;
+
+  /* Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(16, 19, 26, 0.06);
+  --shadow-md: 0 4px 12px rgba(16, 19, 26, 0.08);
+  --shadow-lg: 0 12px 32px rgba(16, 19, 26, 0.12);
+}
+
+.dark {
+  --color-bg: #0d0f12;
+  --color-surface: #15171b;
+  --color-surface-hover: #1b1e23;
+  --color-surface-sunken: #101215;
+
+  --color-border: #262a30;
+  --color-border-strong: #33383f;
+
+  --color-text-primary: #f2f3f5;
+  --color-text-secondary: #a8adb8;
+  --color-text-muted: #6c7280;
+  --color-text-inverted: #0d0f12;
+
+  --color-accent: #5b8def;
+  --color-accent-hover: #7ba1f2;
+  --color-accent-fg: #0d0f12;
+  --color-accent-subtle: #16233d;
+
+  --color-success: #3fb579;
+  --color-success-subtle: #12291e;
+  --color-warning: #d99a3d;
+  --color-warning-subtle: #2e2312;
+  --color-danger: #e5675d;
+  --color-danger-subtle: #301716;
+  --color-info: #5b8def;
+  --color-info-subtle: #16233d;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    color-scheme: light;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+  }
+}
