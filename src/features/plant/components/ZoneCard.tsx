@@ -1,5 +1,4 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { Link } from 'react-router-dom'
 import { ZoneTypeIcon, ZONE_TYPE_LABEL } from './ZoneTypeIcon'
 import type { Zone } from '../types/zone'
 import { Badge } from '@/components/ui/Badge'
@@ -7,7 +6,7 @@ import { cn } from '@/utils/cn'
 
 export interface ZoneCardProps {
   zone: Zone
-  to: string
+  onClick: () => void
   /** Reserved for a future live-status indicator (e.g. risk level). Renders nothing today. */
   statusSlot?: ReactNode
   /** Reserved for future metric badges (e.g. active sensors, open alerts). Renders nothing today. */
@@ -16,13 +15,14 @@ export interface ZoneCardProps {
   style?: CSSProperties
 }
 
-export function ZoneCard({ zone, to, statusSlot, metricsSlot, className, style }: ZoneCardProps) {
+export function ZoneCard({ zone, onClick, statusSlot, metricsSlot, className, style }: ZoneCardProps) {
   return (
-    <Link
-      to={to}
+    <button
+      type="button"
+      onClick={onClick}
       style={style}
       className={cn(
-        'group flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 shadow-sm transition-colors hover:border-border-strong hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        'group flex w-full flex-col gap-3 rounded-lg border border-border bg-surface p-4 text-left shadow-sm transition-colors hover:border-border-strong hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         className,
       )}
     >
@@ -45,6 +45,6 @@ export function ZoneCard({ zone, to, statusSlot, metricsSlot, className, style }
       </div>
 
       {metricsSlot}
-    </Link>
+    </button>
   )
 }

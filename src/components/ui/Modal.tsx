@@ -6,14 +6,15 @@ import { cn } from '@/utils/cn'
 export interface ModalProps {
   isOpen: boolean
   onClose: () => void
-  title?: string
-  description?: string
+  title?: ReactNode
+  description?: ReactNode
+  /** Optional bottom bar, separated by a hairline — typically the primary action. */
+  footer?: ReactNode
   children?: ReactNode
   className?: string
 }
 
-/** Empty modal shell for Phase 1 — no form or business logic wired yet. */
-export function Modal({ isOpen, onClose, title, description, children, className }: ModalProps) {
+export function Modal({ isOpen, onClose, title, description, footer, children, className }: ModalProps) {
   useEffect(() => {
     if (!isOpen) return
 
@@ -44,24 +45,25 @@ export function Modal({ isOpen, onClose, title, description, children, className
         )}
       >
         <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
-          <div className="flex flex-col gap-1">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
             {title && (
-              <h2 id="modal-title" className="text-sm font-semibold text-text-primary">
+              <div id="modal-title" className="text-sm font-semibold text-text-primary">
                 {title}
-              </h2>
+              </div>
             )}
-            {description && <p className="text-sm text-text-secondary">{description}</p>}
+            {description && <div className="text-sm text-text-secondary">{description}</div>}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary"
+            className="shrink-0 rounded-md p-1 text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
         <div className="px-5 py-4">{children}</div>
+        {footer && <div className="border-t border-border px-5 py-4">{footer}</div>}
       </div>
     </div>,
     document.body,

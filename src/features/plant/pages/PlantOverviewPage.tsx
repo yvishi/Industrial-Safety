@@ -59,7 +59,7 @@ export function PlantOverviewPage() {
           </div>
         }
       />
-      <ZoneGrid zones={state.zones} />
+      <ZoneGrid zones={state.zones} activePermits={state.activePermits} />
     </div>
   )
 }
