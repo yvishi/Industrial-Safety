@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING
 from uuid import UUID as UUIDType
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, String
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -30,6 +30,18 @@ class Sensor(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     unit_of_measure: Mapped[str] = mapped_column(String(20))
     installation_date: Mapped[date | None] = mapped_column(Date)
     status: Mapped[str] = mapped_column(String(30), default="active")
+
+    # Alarm-rationalization bands for this installed instrument, in unit_of_measure. Both sides
+    # are nullable because hazards are directional: H2S alarms high, oxygen and fire-water
+    # pressure alarm low. These are instrument metadata (like setpoints in a DCS), not risk
+    # scoring — the future Risk Engine remains a separate concern.
+    normal_min: Mapped[float | None] = mapped_column(Float)
+    normal_max: Mapped[float | None] = mapped_column(Float)
+    warning_min: Mapped[float | None] = mapped_column(Float)
+    warning_max: Mapped[float | None] = mapped_column(Float)
+    critical_min: Mapped[float | None] = mapped_column(Float)
+    critical_max: Mapped[float | None] = mapped_column(Float)
+    sampling_interval_seconds: Mapped[int] = mapped_column(Integer, default=5)
 
     # Denormalized latest reading, kept in sync by the simulation engine so the
     # current-state endpoint never needs a latest-per-sensor subquery.

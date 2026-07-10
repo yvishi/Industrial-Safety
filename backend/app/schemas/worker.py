@@ -11,8 +11,11 @@ class WorkerRole(str, Enum):
     SAFETY_OFFICER = "safety_officer"
     SHIFT_SUPERVISOR = "shift_supervisor"
     OPERATIONS_DIRECTOR = "operations_director"
-    PROCESS_OPERATOR = "process_operator"
+    # Board operators run the units from the control room; outside/field operators walk them.
+    CONSOLE_OPERATOR = "console_operator"
+    FIELD_OPERATOR = "field_operator"
     MAINTENANCE_TECHNICIAN = "maintenance_technician"
+    MAINTENANCE_PLANNER = "maintenance_planner"
     CONTRACTOR = "contractor"
 
 

@@ -3,19 +3,29 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from app.plant_types.schema import ZoneCategory
 from app.schemas.common import TimestampedRead
+
+__all__ = ["ZoneCategory", "ZoneType", "ZoneBase", "ZoneCreate", "ZoneUpdate", "ZoneRead"]
 
 
 class ZoneType(str, Enum):
-    """Mirrors the frontend's ZoneType union (src/features/plant/types/zone.ts) exactly."""
+    """
+    Union of the zone vocabularies across supported plant types (see app/plant_types/) —
+    mirrors the frontend's ZoneType union (src/features/plant/types/zone.ts) exactly.
+    Adding an industry extends this enum; no migration needed (plain strings in the DB).
+    """
 
     CONTROL_ROOM = "control_room"
-    PROCESSING_UNIT = "processing_unit"
-    UTILITIES = "utilities"
+    CRUDE_DISTILLATION = "crude_distillation"
+    VACUUM_DISTILLATION = "vacuum_distillation"
     TANK_FARM = "tank_farm"
-    PUMP_STATION = "pump_station"
-    LOADING_RACK = "loading_rack"
-    FLARE_STACK = "flare_stack"
+    PUMP_HOUSE = "pump_house"
+    LOADING_BAY = "loading_bay"
+    UTILITIES = "utilities"
+    MAINTENANCE_WORKSHOP = "maintenance_workshop"
+    FLARE_SYSTEM = "flare_system"
+    FIRE_WATER = "fire_water"
 
 
 class ZoneBase(BaseModel):
@@ -23,6 +33,7 @@ class ZoneBase(BaseModel):
     code: str
     name: str
     zone_type: ZoneType
+    zone_category: ZoneCategory = ZoneCategory.PROCESS
     description: str | None = None
     grid_row: int | None = None
     grid_col: int | None = None
@@ -36,6 +47,7 @@ class ZoneUpdate(BaseModel):
     code: str | None = None
     name: str | None = None
     zone_type: ZoneType | None = None
+    zone_category: ZoneCategory | None = None
     description: str | None = None
     grid_row: int | None = None
     grid_col: int | None = None

@@ -1,14 +1,23 @@
 # Industrial Safety Intelligence Platform
 
-An enterprise-style operational view of an industrial plant: zones, workers, equipment,
-sensors, and permits-to-work, continuously evolved by a backend simulation engine.
+An enterprise-style operational view of an industrial site — currently the **Riverbend
+Refinery**, a fictional Gulf Coast crude oil refinery: process units, tank storage, product
+loading, utilities and safety systems, with workers, equipment, instruments and
+permits-to-work continuously evolved by a backend simulation engine.
 
 - **Frontend** (`src/`) — React + TypeScript + Vite + Tailwind, enterprise design system, the Plant module
 - **Backend** (`backend/`) — FastAPI + SQLAlchemy (async) + PostgreSQL + a tick-based plant simulator
 
-The frontend polls the backend every 5 seconds, so once both are running the plant genuinely
-changes on its own — sensor readings drift, workers move between zones, equipment cycles
-through maintenance, permits progress through their lifecycle.
+The domain is **configuration-driven**: everything refinery-specific (zones, equipment,
+instruments and their operating ranges, permit vocabulary, simulation behavior) lives in a
+Plant Type definition (`backend/app/plant_types/refinery.py`). Supporting another industry —
+chemical plant, steel plant, LNG terminal — means adding a new definition, not rewriting the
+simulator or the UI.
+
+The frontend polls the backend every 5 seconds, so once both are running the refinery
+genuinely changes on its own — process values drift within their operating bands, tank levels
+fill and draw, workers move between zones, equipment cycles through maintenance with the
+authorizing permit raised alongside it.
 
 ## Prerequisites
 
@@ -30,7 +39,7 @@ cd backend
 uv sync --group dev
 cp .env.example .env          # adjust DATABASE_URL if your Postgres differs
 uv run alembic upgrade head   # create/update the schema
-uv run python -m scripts.seed # populate a fictional plant (safe to skip if already seeded)
+uv run python -m scripts.seed # populate the Riverbend Refinery (safe to skip if already seeded)
 uv run uvicorn app.main:app --reload
 ```
 

@@ -3,8 +3,10 @@ export type WorkerRole =
   | 'safety_officer'
   | 'shift_supervisor'
   | 'operations_director'
-  | 'process_operator'
+  | 'console_operator'
+  | 'field_operator'
   | 'maintenance_technician'
+  | 'maintenance_planner'
   | 'contractor'
 
 export type Shift = 'day' | 'night' | 'swing'

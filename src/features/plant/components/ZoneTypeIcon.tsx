@@ -1,24 +1,42 @@
-import { Radio, Cog, Zap, Cylinder, Gauge, Truck, Flame, type LucideIcon } from 'lucide-react'
+import {
+  Radio,
+  Factory,
+  FlaskConical,
+  Cylinder,
+  Gauge,
+  Truck,
+  Zap,
+  Wrench,
+  Flame,
+  Droplets,
+  type LucideIcon,
+} from 'lucide-react'
 import type { ZoneType } from '../types/zone'
 
 const ZONE_TYPE_ICON: Record<ZoneType, LucideIcon> = {
   control_room: Radio,
-  processing_unit: Cog,
-  utilities: Zap,
+  crude_distillation: Factory,
+  vacuum_distillation: FlaskConical,
   tank_farm: Cylinder,
-  pump_station: Gauge,
-  loading_rack: Truck,
-  flare_stack: Flame,
+  pump_house: Gauge,
+  loading_bay: Truck,
+  utilities: Zap,
+  maintenance_workshop: Wrench,
+  flare_system: Flame,
+  fire_water: Droplets,
 }
 
 export const ZONE_TYPE_LABEL: Record<ZoneType, string> = {
   control_room: 'Control Room',
-  processing_unit: 'Processing Unit',
-  utilities: 'Utilities',
+  crude_distillation: 'Crude Distillation',
+  vacuum_distillation: 'Vacuum Distillation',
   tank_farm: 'Tank Farm',
-  pump_station: 'Pump Station',
-  loading_rack: 'Loading Rack',
-  flare_stack: 'Flare Stack',
+  pump_house: 'Pump House',
+  loading_bay: 'Loading Bay',
+  utilities: 'Utilities',
+  maintenance_workshop: 'Maintenance Workshop',
+  flare_system: 'Flare System',
+  fire_water: 'Fire Water',
 }
 
 export interface ZoneTypeIconProps {

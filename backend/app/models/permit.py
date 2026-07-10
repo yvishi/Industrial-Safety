@@ -25,6 +25,8 @@ class Permit(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     permit_number: Mapped[str] = mapped_column(String(30), unique=True, index=True)
     permit_type: Mapped[str] = mapped_column(String(40), index=True)
+    # Isolation standard demanded before the work may start (lockout_tagout, blind_purge_and_gas_test, ...).
+    required_isolation: Mapped[str | None] = mapped_column(String(40))
     description: Mapped[str | None] = mapped_column(String(1000))
     status: Mapped[str] = mapped_column(String(30), default="draft", index=True)
 

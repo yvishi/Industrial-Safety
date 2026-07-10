@@ -2,42 +2,17 @@ import type { Equipment } from '../types/equipment'
 import type { Permit } from '../types/permit'
 import type { Sensor, SensorType } from '../types/sensor'
 import { formatStatusLabel } from './statusMapping'
+import {
+  SENSOR_METRIC_LABEL,
+  SENSOR_METRIC_ORDER,
+  isSensorElevated,
+} from './sensorDisplay'
 
 /**
- * Normal-operating-band ceilings, mirrored from the simulation engine's own warning
- * thresholds (backend/app/simulation/profiles.py) — "Normal" here means exactly what the
- * simulator itself already treats as in-band, not a separately invented judgment. If those
- * profiles change, update this table to match.
+ * "Elevated" is judged against each instrument's own alarm bands, which the API carries on
+ * every sensor (seeded from the plant type definition). This restates the instrument's
+ * recorded thresholds — no risk scoring or judgment is computed here.
  */
-const SENSOR_WARNING_LEVEL: Partial<Record<SensorType, number>> = {
-  temperature: 210,
-  pressure: 175,
-  flow: 460,
-  level: 88,
-  gas_detection: 20,
-  vibration: 7.1,
-  smoke: 4,
-}
-
-const SENSOR_METRIC_LABEL: Record<SensorType, string> = {
-  temperature: 'Temperature',
-  pressure: 'Pressure',
-  flow: 'Flow',
-  level: 'Level',
-  gas_detection: 'Gas',
-  vibration: 'Vibration',
-  smoke: 'Smoke',
-}
-
-const SENSOR_METRIC_ORDER: SensorType[] = [
-  'gas_detection',
-  'temperature',
-  'pressure',
-  'level',
-  'flow',
-  'vibration',
-  'smoke',
-]
 
 export interface SensorMetricRow {
   type: SensorType
@@ -50,12 +25,6 @@ export interface ZoneHealthSummary {
   permitsSummary: string
   sensorRows: SensorMetricRow[]
   isHealthy: boolean
-}
-
-function isSensorElevated(sensor: Sensor): boolean {
-  if (sensor.status === 'faulted') return true
-  const warningLevel = SENSOR_WARNING_LEVEL[sensor.sensorType]
-  return warningLevel !== undefined && sensor.lastValue !== null && sensor.lastValue >= warningLevel
 }
 
 function summarizeEquipment(equipment: Equipment[]): { text: string; hasConcern: boolean } {

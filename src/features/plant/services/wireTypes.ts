@@ -9,6 +9,7 @@ export interface RawZone {
   code: string
   name: string
   zone_type: string
+  zone_category: string
   description: string | null
   grid_row: number | null
   grid_col: number | null
@@ -48,6 +49,13 @@ export interface RawSensor {
   sensor_type: string
   unit_of_measure: string
   status: string
+  normal_min: number | null
+  normal_max: number | null
+  warning_min: number | null
+  warning_max: number | null
+  critical_min: number | null
+  critical_max: number | null
+  sampling_interval_seconds: number
   last_value: number | null
   last_reading_at: string | null
 }
@@ -57,6 +65,7 @@ export interface RawPermit {
   zone_id: string
   permit_number: string
   permit_type: string
+  required_isolation: string | null
   status: string
   description: string | null
   valid_from: string | null

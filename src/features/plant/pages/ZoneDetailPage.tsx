@@ -24,12 +24,12 @@ const UPCOMING_CAPABILITIES = [
   {
     icon: ScanEye,
     title: 'Computer Vision',
-    description: 'Camera-based hazard and PPE detection. Not yet connected.',
+    description: 'Camera-based hazard and PPE detection for this process area. Not yet connected.',
   },
   {
     icon: Sparkles,
     title: 'AI Recommendations',
-    description: 'Model-generated safety guidance for this zone. Not yet connected.',
+    description: 'Model-generated safety guidance for this process area. Not yet connected.',
   },
 ]
 
@@ -62,8 +62,8 @@ export function ZoneDetailPage() {
     return (
       <EmptyState
         icon={WifiOff}
-        title="Can't reach the plant"
-        description="The backend API isn't responding. Make sure it's running, then this page will pick up automatically."
+        title="Can't reach the refinery"
+        description="The refinery data service isn't responding. Make sure the backend is running, then this page will pick up automatically."
       />
     )
   }
@@ -82,7 +82,7 @@ export function ZoneDetailPage() {
         className="inline-flex w-fit items-center gap-1.5 text-sm text-text-secondary transition-colors hover:text-text-primary"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        Plant overview
+        Refinery overview
       </Link>
 
       <PageHeader
@@ -106,19 +106,25 @@ export function ZoneDetailPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Section title="Personnel" description="Workers currently in this zone.">
+        <Section title="Personnel" description="Who is in this zone right now.">
           <PersonnelList workers={workers} />
         </Section>
 
-        <Section title="Active Permits" description="Permits-to-work currently in force.">
+        <Section
+          title="Active Permits"
+          description="Permits-to-work currently in force, with their required isolation."
+        >
           <PermitList permits={activePermits} />
         </Section>
 
-        <Section title="Equipment" description="Assets registered in this zone.">
+        <Section title="Equipment" description="Tagged assets registered in this zone.">
           <EquipmentList equipment={equipment} />
         </Section>
 
-        <Section title="Sensors" description="Latest reading from each instrument.">
+        <Section
+          title="Instrumentation"
+          description="Live readings against each instrument's normal operating band."
+        >
           <SensorList sensors={sensors} />
         </Section>
       </div>

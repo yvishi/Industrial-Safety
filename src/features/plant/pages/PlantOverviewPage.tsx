@@ -39,8 +39,8 @@ export function PlantOverviewPage() {
     return (
       <EmptyState
         icon={WifiOff}
-        title="Can't reach the plant"
-        description={`The backend API isn't responding. Make sure it's running, then this page will pick up automatically.`}
+        title="Can't reach the refinery"
+        description={`The refinery data service isn't responding. Make sure the backend is running, then this page will pick up automatically.`}
       />
     )
   }

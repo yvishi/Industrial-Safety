@@ -19,7 +19,12 @@ export function PermitList({ permits }: PermitListProps) {
             <span className="truncate text-sm font-medium text-text-primary">
               {permit.description ?? formatStatusLabel(permit.permitType)}
             </span>
-            <span className="font-mono text-xs text-text-muted">{permit.permitNumber}</span>
+            <span className="truncate font-mono text-xs text-text-muted">
+              {permit.permitNumber} · {formatStatusLabel(permit.permitType)}
+              {permit.requiredIsolation && permit.requiredIsolation !== 'none'
+                ? ` · ${formatStatusLabel(permit.requiredIsolation)}`
+                : ''}
+            </span>
           </div>
           <StatusPill
             status={permitStatusPill(permit.status)}

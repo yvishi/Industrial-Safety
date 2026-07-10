@@ -10,6 +10,7 @@ from app.schemas.common import TimestampedRead
 class PermitType(str, Enum):
     HOT_WORK = "hot_work"
     CONFINED_SPACE = "confined_space"
+    LINE_BREAKING = "line_breaking"
     LOCKOUT_TAGOUT = "lockout_tagout"
     WORKING_AT_HEIGHT = "working_at_height"
     EXCAVATION = "excavation"
@@ -31,6 +32,8 @@ class PermitBase(BaseModel):
     equipment_id: UUID | None = None
     permit_number: str
     permit_type: PermitType
+    # Isolation standard demanded before the work may start (lockout_tagout, blind_purge_and_gas_test, ...).
+    required_isolation: str | None = None
     description: str | None = None
     status: PermitStatus = PermitStatus.DRAFT
     requested_by_id: UUID
@@ -48,6 +51,7 @@ class PermitUpdate(BaseModel):
     equipment_id: UUID | None = None
     permit_number: str | None = None
     permit_type: PermitType | None = None
+    required_isolation: str | None = None
     description: str | None = None
     status: PermitStatus | None = None
     approved_by_id: UUID | None = None

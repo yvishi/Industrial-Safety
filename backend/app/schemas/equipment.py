@@ -8,15 +8,26 @@ from app.schemas.common import TimestampedRead
 
 
 class EquipmentType(str, Enum):
+    """Union of the asset vocabularies across supported plant types (see app/plant_types/)."""
+
     PUMP = "pump"
+    FIRE_PUMP = "fire_pump"
     COMPRESSOR = "compressor"
     HEAT_EXCHANGER = "heat_exchanger"
+    FIRED_HEATER = "fired_heater"
+    BOILER = "boiler"
+    DISTILLATION_COLUMN = "distillation_column"
     VESSEL = "vessel"
     TANK = "tank"
-    VALVE = "valve"
-    REACTOR = "reactor"
-    FURNACE = "furnace"
-    INSTRUMENT = "instrument"
+    CONTROL_VALVE = "control_valve"
+    RELIEF_VALVE = "relief_valve"
+    LOADING_ARM = "loading_arm"
+    FLARE_STACK = "flare_stack"
+    VACUUM_EJECTOR = "vacuum_ejector"
+    GENERATOR = "generator"
+    CONTROL_SYSTEM = "control_system"
+    HVAC = "hvac"
+    CRANE = "crane"
 
 
 class EquipmentStatus(str, Enum):

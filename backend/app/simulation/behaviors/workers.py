@@ -1,9 +1,10 @@
 """
-Worker movement behavior.
+Worker movement behavior — plant-type-driven.
 
-Workers move only between grid-adjacent zones (the zone grid mirrors physical site layout),
-with a homing bias back toward their primary assignment. Field roles roam; control-room
-roles mostly stay put. Every move emits a worker_zone_entry event.
+Workers move only between grid-adjacent zones (the zone grid mirrors the physical plot plan),
+with a homing bias back toward their primary assignment. Which roles roam the units and which
+stay at a console, and how often either moves, come from the plant type's tuning. Every move
+emits a worker_zone_entry event.
 """
 
 import random
@@ -13,11 +14,9 @@ from uuid import UUID
 from app.models.event import Event
 from app.models.worker import Worker
 from app.models.zone import Zone
+from app.plant_types.schema import PlantTypeDefinition
 from app.simulation.events import make_event
 
-FIELD_MOVE_PROBABILITY = 0.010  # per tick ≈ one move every ~8 min at 5s ticks
-DESK_MOVE_PROBABILITY = 0.003  # managers/supervisors/safety leave the control room rarely
-DESK_ROLES = {"plant_manager", "safety_officer", "shift_supervisor", "operations_director"}
 MOBILE_STATUSES = {"active", "contractor"}
 
 
@@ -41,10 +40,12 @@ class WorkerBehavior:
         self,
         workers: list[Worker],
         zones_by_id: dict[UUID, Zone],
+        definition: PlantTypeDefinition,
         now: datetime,
     ) -> list[Event]:
         events: list[Event] = []
         zones = list(zones_by_id.values())
+        tuning = definition.tuning
 
         for worker in workers:
             if worker.employment_status not in MOBILE_STATUSES:
@@ -59,7 +60,9 @@ class WorkerBehavior:
                 continue
 
             probability = (
-                DESK_MOVE_PROBABILITY if worker.role in DESK_ROLES else FIELD_MOVE_PROBABILITY
+                tuning.desk_move_probability
+                if worker.role in tuning.desk_roles
+                else tuning.field_move_probability
             )
             if self.rng.random() >= probability:
                 continue

@@ -14,6 +14,9 @@ class Plant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     code: Mapped[str] = mapped_column(String(20), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(200))
+    # Selects the PlantTypeDefinition (app/plant_types/) that drives the simulator and seeded
+    # vocabulary for this site — the industry the plant belongs to.
+    plant_type: Mapped[str] = mapped_column(String(40), default="crude_oil_refinery", index=True)
     description: Mapped[str | None] = mapped_column(String(1000))
 
     city: Mapped[str | None] = mapped_column(String(120))

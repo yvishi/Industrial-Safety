@@ -7,7 +7,7 @@ export function TimelinePage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Timeline"
-        description="A chronological record of plant events and operational changes will appear here."
+        description="A chronological record of refinery events and operational changes will appear here."
       />
       <EmptyState
         icon={History}

@@ -7,7 +7,7 @@ export function DashboardPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Dashboard"
-        description="A unified overview of plant safety operations will live here."
+        description="A unified overview of refinery safety operations will live here."
       />
       <EmptyState
         icon={LayoutDashboard}

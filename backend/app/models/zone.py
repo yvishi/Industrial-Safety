@@ -30,6 +30,9 @@ class Zone(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     code: Mapped[str] = mapped_column(String(20), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(200))
     zone_type: Mapped[str] = mapped_column(String(40), index=True)
+    # Coarse cross-industry grouping (process / storage / safety_systems / ...); the
+    # industry-specific identity (crude_distillation, tank_farm, ...) stays in zone_type.
+    zone_category: Mapped[str] = mapped_column(String(40), default="process", index=True)
     description: Mapped[str | None] = mapped_column(String(1000))
 
     # Approximate physical adjacency on site — mirrors the frontend's ZoneGrid layout.

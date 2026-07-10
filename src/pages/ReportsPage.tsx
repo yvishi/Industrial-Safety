@@ -7,7 +7,7 @@ export function ReportsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Reports"
-        description="Compliance and safety reports will be generated and archived here."
+        description="Compliance and safety reports for refinery operations will be generated and archived here."
       />
       <EmptyState
         icon={FileText}

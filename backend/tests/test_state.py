@@ -15,7 +15,7 @@ async def test_state_snapshot_shape(client: AsyncClient) -> None:
                 "plant_id": plant["id"],
                 "code": "ZN-01",
                 "name": "Test Zone",
-                "zone_type": "processing_unit",
+                "zone_type": "crude_distillation",
             },
         )
     ).json()

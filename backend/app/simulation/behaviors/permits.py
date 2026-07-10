@@ -1,10 +1,16 @@
 """
-Permit-to-Work lifecycle behavior.
+Permit-to-Work lifecycle behavior — plant-type-driven.
 
-Existing permits walk the chain draft -> pending_approval -> approved -> active -> closed/expired
-by simple time- and probability-based rules; occasionally a new realistic permit is drafted so
-the permit board stays alive during long demos. Approvals are assigned to actual safety
-officers / shift supervisors from the worker roster.
+Existing permits walk the chain draft -> pending_approval -> approved -> active ->
+closed/expired by simple time- and probability-based rules; approvals are assigned to real
+approvers from the worker roster (roles from the plant type's tuning).
+
+New permits arise two ways, both from the plant type's permit catalog:
+- when an asset enters maintenance, the authorizing permit is drafted against it (permit
+  activity follows the maintenance schedule, as on a real site);
+- occasionally a planned-work permit appears on its own so the board stays alive.
+The permit type is chosen from the catalog's applies_to mapping (LOTO for a pump, confined
+space for a tank, ...) and carries that type's required isolation standard.
 """
 
 import random
@@ -17,24 +23,14 @@ from app.models.event import Event
 from app.models.permit import Permit
 from app.models.worker import Worker
 from app.models.zone import Zone
+from app.plant_types.schema import PlantTypeDefinition
 from app.simulation.events import make_event
 
 P_SUBMIT = 0.010  # draft -> pending_approval
 P_APPROVE = 0.008  # pending_approval -> approved
 P_CLOSE_EARLY = 0.0010  # active -> closed before expiry (work finished)
-P_NEW_PERMIT = 0.0050  # a new draft appears (~1 per half hour at 5s ticks)
 
-APPROVER_ROLES = {"safety_officer", "shift_supervisor"}
-REQUESTER_ROLES = {"process_operator", "maintenance_technician", "contractor"}
-
-PERMIT_TEMPLATES: list[tuple[str, str]] = [
-    ("hot_work", "Weld repair on {target}"),
-    ("hot_work", "Grinding and cutting near {target}"),
-    ("lockout_tagout", "Isolation for mechanical work on {target}"),
-    ("confined_space", "Internal inspection of {target}"),
-    ("working_at_height", "Elevated platform work at {target}"),
-    ("electrical", "Motor control inspection on {target}"),
-]
+_PERMIT_NUMBER_RE = re.compile(r"PTW-(\d{4})-(\d+)")
 
 
 class PermitBehavior:
@@ -47,13 +43,18 @@ class PermitBehavior:
         workers: list[Worker],
         equipment: list[Equipment],
         zones_by_id: dict[UUID, Zone],
+        definition: PlantTypeDefinition,
+        started_maintenance: list[Equipment],
         now: datetime,
     ) -> tuple[list[Permit], list[Event]]:
         events: list[Event] = []
         new_permits: list[Permit] = []
+        tuning = definition.tuning
 
-        approvers = [w for w in workers if w.role in APPROVER_ROLES and w.employment_status == "active"]
-        requesters = [w for w in workers if w.role in REQUESTER_ROLES]
+        approvers = [
+            w for w in workers if w.role in tuning.approver_roles and w.employment_status == "active"
+        ]
+        requesters = [w for w in workers if w.role in tuning.requester_roles]
 
         for permit in permits:
             if permit.status == "draft" and self.rng.random() < P_SUBMIT:
@@ -128,46 +129,58 @@ class PermitBehavior:
                         )
                     )
 
-        if requesters and self.rng.random() < P_NEW_PERMIT:
-            permit = self._draft_new_permit(permits, requesters, equipment, zones_by_id)
-            if permit is not None:
-                new_permits.append(permit)
+        if requesters:
+            # Work that just started needs its authorization on the board.
+            for asset in started_maintenance:
+                if self.rng.random() < tuning.p_permit_follows_maintenance:
+                    permit = self._draft_permit(asset, permits, new_permits, requesters, definition, now)
+                    if permit is not None:
+                        new_permits.append(permit)
+
+            # Occasionally, planned work is drafted ahead of any status change.
+            if self.rng.random() < tuning.p_new_permit:
+                candidates = [e for e in equipment if e.status != "decommissioned"]
+                if candidates:
+                    asset = self.rng.choice(candidates)
+                    permit = self._draft_permit(asset, permits, new_permits, requesters, definition, now)
+                    if permit is not None:
+                        new_permits.append(permit)
 
         return new_permits, events
 
-    def _draft_new_permit(
+    def _draft_permit(
         self,
+        asset: Equipment,
         permits: list[Permit],
+        pending_new: list[Permit],
         requesters: list[Worker],
-        equipment: list[Equipment],
-        zones_by_id: dict[UUID, Zone],
+        definition: PlantTypeDefinition,
+        now: datetime,
     ) -> Permit | None:
-        # Permits attach to real work: pick an asset, inherit its zone.
-        candidates = [e for e in equipment if e.status != "decommissioned"]
-        if not candidates:
+        permit_types = definition.permit_types_for_equipment(asset.equipment_type)
+        if not permit_types:
             return None
-        asset = self.rng.choice(candidates)
-        zone = zones_by_id.get(asset.zone_id)
-        if zone is None:
-            return None
-
-        permit_type, template = self.rng.choice(PERMIT_TEMPLATES)
+        permit_type = self.rng.choice(permit_types)
+        template = self.rng.choice(permit_type.description_templates)
         requester = self.rng.choice(requesters)
 
         return Permit(
-            permit_number=self._next_permit_number(permits),
-            permit_type=permit_type,
+            permit_number=self._next_permit_number(permits, pending_new, now),
+            permit_type=permit_type.slug,
+            required_isolation=permit_type.required_isolation,
             description=template.format(target=f"{asset.name} ({asset.tag_number})"),
             status="draft",
-            zone_id=zone.id,
+            zone_id=asset.zone_id,
             equipment_id=asset.id,
             requested_by_id=requester.id,
         )
 
-    def _next_permit_number(self, permits: list[Permit]) -> str:
+    def _next_permit_number(
+        self, permits: list[Permit], pending_new: list[Permit], now: datetime
+    ) -> str:
         highest = 0
-        for permit in permits:
-            match = re.fullmatch(r"PTW-(\d{4})-(\d+)", permit.permit_number)
+        for permit in [*permits, *pending_new]:
+            match = _PERMIT_NUMBER_RE.fullmatch(permit.permit_number)
             if match:
                 highest = max(highest, int(match.group(2)))
-        return f"PTW-2026-{highest + 1:04d}"
+        return f"PTW-{now.year}-{highest + 1:04d}"

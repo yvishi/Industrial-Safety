@@ -22,6 +22,7 @@ class EventType(str, Enum):
     WORKER_CHECK_OUT = "worker_check_out"
     WORKER_ZONE_ENTRY = "worker_zone_entry"
     SENSOR_WARNING = "sensor_warning"
+    SENSOR_CRITICAL = "sensor_critical"
     SENSOR_RECOVERED = "sensor_recovered"
     MAINTENANCE_LOGGED = "maintenance_logged"
     GENERAL = "general"

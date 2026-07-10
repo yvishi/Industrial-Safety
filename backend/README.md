@@ -6,6 +6,12 @@ Platform: plants, zones, workers, equipment, sensors, permits, an activity log, 
 worker movement, equipment lifecycle, permit workflow) and persists it to Postgres.
 No auth, no AI, no computed risk state.
 
+The engine and API are **industry-agnostic**: all domain knowledge lives in a **Plant Type
+definition** (`app/plant_types/`) — typed Pydantic configuration describing zones, equipment,
+instruments with per-instrument operating ranges, permit vocabulary, worker roster, and
+simulation tuning. One plant type ships today (`crude_oil_refinery`, seeded as the Riverbend
+Refinery); adding an industry means writing a new definition module and registering it.
+
 ## Stack
 
 - **FastAPI** — API layer, versioned under `/api/v1`
@@ -25,13 +31,16 @@ app/
   schemas/            Pydantic Create/Update/Read models + enums (validation boundary)
   repositories/        SQLAlchemy queries, one class per entity + a generic CRUD base
   services/            not-found/conflict rules + orchestration above repositories
-  simulation/          plant simulation engine (never imports from api/)
-    profiles.py        per-sensor-type physics: baseline, noise, warning levels
+  plant_types/         Plant Type configuration layer (industry definitions)
+    schema.py          Pydantic schema: what a plant type IS (zones, instruments, ranges, tuning)
+    refinery.py        the Crude Oil Refinery definition (the only industry so far)
+    registry.py        slug -> definition lookup used by the simulator and seed
+  simulation/          plant simulation engine (never imports from api/; industry-agnostic)
     behaviors/         sensors, workers, equipment, permits — one module each
-    engine.py          the tick loop; one transaction per tick
+    engine.py          the tick loop; resolves the plant type, one transaction per tick
     runner.py          standalone entrypoint (python -m app.simulation.runner)
 alembic/              migrations
-scripts/seed.py        populates a believable fictional plant
+scripts/seed.py        materializes the plant type definition into the Riverbend Refinery
 tests/                  pytest + httpx, SQLite-backed
 ```
 
@@ -69,14 +78,20 @@ uv run uvicorn app.main:app --reload
 The simulator runs inside the API process by default (`SIMULATION_ENABLED=true`), ticking
 every `SIMULATION_TICK_SECONDS` (default 5s):
 
-- **Sensors** take a mean-reverting random-walk step each tick; occasional controlled
-  excursions climb toward the warning level and recover. Band crossings emit
-  `sensor_warning` / `sensor_recovered` events — raw readings are never events.
-- **Workers** move between grid-adjacent zones with a homing bias toward their station.
-- **Equipment** transitions operational/standby/under_maintenance with realistic dwell
-  times; safety-critical assets never stop.
-- **Permits** walk draft -> pending -> approved -> active -> closed/expired, and new
-  realistic permits appear over time.
+- **Sensors** are sampled on their own per-instrument interval and evolve by a dynamics mode
+  from the plant type's catalog: mean-reverting (temperatures, pressures, gas ppm), integrating
+  (bulk tank levels fill and draw), or equipment-coupled (a stopped pump's flow decays to zero,
+  without spurious alarms). Operating ranges come from each sensor's own DB row; crossings emit
+  `sensor_warning` / `sensor_critical` / `sensor_recovered` events (high *or* low side — oxygen
+  and fire-water pressure alarm low) — raw readings are never events.
+- **Workers** move between grid-adjacent zones with a homing bias toward their station; which
+  roles roam vs stay at a console comes from the plant type's tuning.
+- **Equipment** transitions operational/standby/under_maintenance with per-type dwell times
+  from the catalog; safety-critical assets keep their seeded status, and installed-spare pairs
+  (e.g. crude charge pumps A/B) auto-start the standby unit when the duty unit goes down.
+- **Permits** walk draft -> pending -> approved -> active -> closed/expired. When an asset
+  enters maintenance, the authorizing permit (type and isolation standard chosen from the
+  plant type's permit catalog) is drafted against it; occasional planned-work permits appear too.
 
 Every meaningful change is committed in the same transaction as its Event row.
 Readings are pruned past `SENSOR_READING_RETENTION_HOURS` (default 24h).
@@ -101,11 +116,16 @@ uv run pytest
 
 - `zone_type`, `equipment_type`, `sensor_type`, `permit_type`, `permit_status`, `event_type` are
   plain strings validated by a Pydantic enum at the API boundary — not Postgres enum/CHECK
-  constraints. Extending any of these vocabularies (new event types especially) needs no
-  migration.
+  constraints. The enums are the *union across supported plant types*: adding an industry
+  extends them (and mirrors the change in the frontend unions), no migration needed.
+- Per-instrument operating ranges (`normal_/warning_/critical_ min/max`) live on the `Sensor`
+  row, seeded from the plant type definition. They are instrument metadata — like alarm
+  setpoints in a DCS — that also drives simulation events and UI display. The future Risk
+  Engine still owns its own judgment; these bands are inputs, not risk scores.
 - `Sensor` is a registry/catalog record, not a telemetry store. Live readings are a deliberately
-  separate future concern with its own storage shape (likely not a plain relational table).
+  separate concern (`sensor_readings`, pruned to a retention window).
 - `Event` is a generic activity log. The future Incident Timeline is a filtered/sorted view over
   this table, not a new one.
-- Zone codes/types/grid positions mirror `src/features/plant/data/zones.ts` in the frontend
-  exactly, so swapping the frontend's static data for a real API call needs no remapping.
+- Zone/equipment/sensor identity flows from `app/plant_types/refinery.py` through the seed into
+  the DB; the frontend renders whatever the API returns, so plant-type changes need matching
+  updates only to the frontend's type unions and icon/label maps.

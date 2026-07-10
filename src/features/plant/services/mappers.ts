@@ -4,7 +4,7 @@ import type { PlantProfile } from '../types/plant'
 import type { Permit, PermitStatus, PermitType } from '../types/permit'
 import type { Sensor, SensorStatus, SensorType } from '../types/sensor'
 import type { Shift, Worker, WorkerRole } from '../types/worker'
-import type { Zone, ZoneType } from '../types/zone'
+import type { Zone, ZoneCategory, ZoneType } from '../types/zone'
 import type {
   RawEquipment,
   RawEvent,
@@ -29,6 +29,7 @@ export function mapZone(raw: RawZone): Zone {
     code: raw.code,
     name: raw.name,
     zoneType: raw.zone_type as ZoneType,
+    zoneCategory: raw.zone_category as ZoneCategory,
     description: raw.description,
     gridPosition: { row: raw.grid_row ?? 0, col: raw.grid_col ?? 0 },
   }
@@ -64,6 +65,13 @@ export function mapSensor(raw: RawSensor): Sensor {
     sensorType: raw.sensor_type as SensorType,
     unitOfMeasure: raw.unit_of_measure,
     status: raw.status as SensorStatus,
+    normalMin: raw.normal_min,
+    normalMax: raw.normal_max,
+    warningMin: raw.warning_min,
+    warningMax: raw.warning_max,
+    criticalMin: raw.critical_min,
+    criticalMax: raw.critical_max,
+    samplingIntervalSeconds: raw.sampling_interval_seconds,
     lastValue: raw.last_value,
     lastReadingAt: raw.last_reading_at,
   }
@@ -75,6 +83,7 @@ export function mapPermit(raw: RawPermit): Permit {
     zoneId: raw.zone_id,
     permitNumber: raw.permit_number,
     permitType: raw.permit_type as PermitType,
+    requiredIsolation: raw.required_isolation,
     status: raw.status as PermitStatus,
     description: raw.description,
     validFrom: raw.valid_from,

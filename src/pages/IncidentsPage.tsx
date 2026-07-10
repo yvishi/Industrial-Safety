@@ -7,7 +7,7 @@ export function IncidentsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Incidents"
-        description="Reported safety incidents and their resolution status will appear here."
+        description="Safety incidents reported across the refinery and their resolution status will appear here."
       />
       <EmptyState
         icon={AlertTriangle}

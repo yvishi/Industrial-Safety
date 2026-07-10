@@ -55,6 +55,12 @@ const STATUS_LABEL_OVERRIDES: Record<string, string> = {
   under_maintenance: 'Under Maintenance',
   under_calibration: 'Under Calibration',
   pending_approval: 'Pending Approval',
+  lockout_tagout: 'Lockout / Tagout',
+  hvac: 'HVAC',
+  // Isolation standards carried on permits.
+  gas_test_and_fire_watch: 'Gas Test & Fire Watch',
+  blind_purge_and_gas_test: 'Blind, Purge & Gas Test',
+  depressurize_drain_and_blind: 'Depressurize, Drain & Blind',
 }
 
 /** "under_maintenance" -> "Under Maintenance"; falls back to a title-cased split on "_". */

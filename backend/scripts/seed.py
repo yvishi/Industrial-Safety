@@ -1,8 +1,9 @@
 """
-Seeds the database with a believable fictional petrochemical plant: one plant, its 8 zones
-(mirroring the frontend's Riverbend Processing Facility exactly), workers, equipment, sensors,
-permits, and a activity log. Structural/identity data only — no live telemetry, no computed
-risk/state.
+Seeds the database with the Riverbend Refinery — an instance of the crude_oil_refinery
+plant type. Zones, equipment, instruments (with their operating ranges) and the worker
+roster are materialized from the PlantTypeDefinition (app/plant_types/refinery.py), so the
+plant structure has exactly one source of truth. Only the site identity and a short
+opening narrative of permits/events are authored here.
 
 Usage (from backend/):
     uv run python -m scripts.seed
@@ -13,6 +14,25 @@ from datetime import date, datetime, timedelta, timezone
 
 from app.database.session import AsyncSessionLocal
 from app.models import Equipment, Event, Permit, Plant, Sensor, Worker, Zone
+from app.plant_types import get_plant_type
+
+PLANT_TYPE = "crude_oil_refinery"
+
+PLANT = dict(
+    code="RVB-01",
+    name="Riverbend Refinery",
+    plant_type=PLANT_TYPE,
+    description=(
+        "A 180,000 bpd crude oil refinery on the Gulf Coast: atmospheric and vacuum "
+        "distillation, bulk tank storage, truck loading, and full site utilities."
+    ),
+    city="Riverbend",
+    region="TX",
+    country="USA",
+    latitude=29.7604,
+    longitude=-95.3698,
+    timezone="America/Chicago",
+)
 
 
 def days_ago(n: int) -> datetime:
@@ -23,270 +43,178 @@ def days_from_now(n: int) -> datetime:
     return datetime.now(timezone.utc) + timedelta(days=n)
 
 
-ZONES = [
-    dict(
-        code="CR-01",
-        name="Central Control Room",
-        zone_type="control_room",
-        description="Centralized monitoring and process control for all site operations.",
-        grid_row=1,
-        grid_col=1,
-    ),
-    dict(
-        code="PU-01",
-        name="Crude Distillation Unit",
-        zone_type="processing_unit",
-        description="Atmospheric distillation and primary hydrocarbon separation.",
-        grid_row=1,
-        grid_col=2,
-    ),
-    dict(
-        code="PU-02",
-        name="Catalytic Reformer Unit",
-        zone_type="processing_unit",
-        description="Converts naphtha into high-octane reformate via catalytic reforming.",
-        grid_row=1,
-        grid_col=3,
-    ),
-    dict(
-        code="UT-01",
-        name="Utilities & Steam Plant",
-        zone_type="utilities",
-        description="Steam generation, compressed air, and site-wide power distribution.",
-        grid_row=1,
-        grid_col=4,
-    ),
-    dict(
-        code="TF-01",
-        name="Tank Farm",
-        zone_type="tank_farm",
-        description="Bulk storage for crude feedstock and finished petroleum products.",
-        grid_row=2,
-        grid_col=1,
-    ),
-    dict(
-        code="PS-01",
-        name="Pump Station",
-        zone_type="pump_station",
-        description="Transfer pumping between storage, process units, and loading systems.",
-        grid_row=2,
-        grid_col=2,
-    ),
-    dict(
-        code="LR-01",
-        name="Loading Rack",
-        zone_type="loading_rack",
-        description="Truck and rail loading for finished product distribution.",
-        grid_row=2,
-        grid_col=3,
-    ),
-    dict(
-        code="FS-01",
-        name="Flare Stack",
-        zone_type="flare_stack",
-        description="Emergency pressure relief and combustion of process off-gases.",
-        grid_row=2,
-        grid_col=4,
-    ),
-]
-
-WORKERS = [
-    dict(employee_id="EMP-1001", first_name="Elena", last_name="Martinez", role="plant_manager", zone="CR-01", shift="day"),
-    dict(employee_id="EMP-1002", first_name="Marcus", last_name="Whitfield", role="safety_officer", zone="CR-01", shift="day"),
-    dict(employee_id="EMP-1003", first_name="Priya", last_name="Chandrasekaran", role="safety_officer", zone="CR-01", shift="night"),
-    dict(employee_id="EMP-1004", first_name="Daniel", last_name="Osei", role="shift_supervisor", zone="CR-01", shift="day"),
-    dict(employee_id="EMP-1005", first_name="Grace", last_name="Lindqvist", role="shift_supervisor", zone="CR-01", shift="night"),
-    dict(employee_id="EMP-1006", first_name="Robert", last_name="Kim", role="shift_supervisor", zone="CR-01", shift="swing"),
-    dict(employee_id="EMP-1007", first_name="Amara", last_name="Okafor", role="operations_director", zone=None, shift="day"),
-    dict(employee_id="EMP-1008", first_name="Tomas", last_name="Reyes", role="process_operator", zone="PU-01", shift="day"),
-    dict(employee_id="EMP-1009", first_name="Hannah", last_name="Fitzgerald", role="process_operator", zone="PU-02", shift="night"),
-    dict(employee_id="EMP-1010", first_name="Ibrahim", last_name="Al-Sayed", role="process_operator", zone="TF-01", shift="day"),
-    dict(employee_id="EMP-1011", first_name="Chloe", last_name="Bergstrom", role="process_operator", zone="PS-01", shift="swing"),
-    dict(employee_id="EMP-1012", first_name="Nathaniel", last_name="Voss", role="process_operator", zone="LR-01", shift="day"),
-    dict(employee_id="EMP-1013", first_name="Sofia", last_name="Delacroix", role="maintenance_technician", zone="UT-01", shift="day"),
-    dict(employee_id="EMP-1014", first_name="Jamal", last_name="Whitaker", role="maintenance_technician", zone="PU-01", shift="night", employment_status="on_leave"),
-    dict(employee_id="EMP-1015", first_name="Wei", last_name="Chen", role="maintenance_technician", zone="FS-01", shift="day"),
-    dict(employee_id="EMP-1016", first_name="Diego", last_name="Fernandez", role="contractor", zone="LR-01", shift="day", employment_status="contractor"),
-]
-
-EQUIPMENT = [
-    dict(tag_number="DCS-101", name="Distributed Control System Cabinet", equipment_type="instrument", zone="CR-01"),
-    dict(tag_number="P-101A", name="Crude Feed Pump A", equipment_type="pump", zone="PU-01", manufacturer="Flowserve"),
-    dict(tag_number="E-101", name="Crude Preheat Exchanger", equipment_type="heat_exchanger", zone="PU-01"),
-    dict(tag_number="V-101", name="Atmospheric Distillation Column", equipment_type="vessel", zone="PU-01", criticality="safety_critical"),
-    dict(tag_number="R-201", name="Catalytic Reformer Reactor", equipment_type="reactor", zone="PU-02", criticality="safety_critical"),
-    dict(tag_number="F-201", name="Reformer Charge Heater", equipment_type="furnace", zone="PU-02"),
-    dict(tag_number="C-201", name="Recycle Gas Compressor", equipment_type="compressor", zone="PU-02", manufacturer="Ingersoll Rand"),
-    dict(tag_number="B-301", name="Package Boiler No.1", equipment_type="furnace", zone="UT-01"),
-    dict(tag_number="K-301", name="Instrument Air Compressor", equipment_type="compressor", zone="UT-01"),
-    dict(tag_number="T-401", name="Crude Storage Tank 1", equipment_type="tank", zone="TF-01", criticality="high"),
-    dict(tag_number="T-402", name="Finished Product Tank 1", equipment_type="tank", zone="TF-01", status="under_maintenance"),
-    dict(tag_number="P-501A", name="Main Transfer Pump A", equipment_type="pump", zone="PS-01"),
-    dict(tag_number="P-501B", name="Main Transfer Pump B", equipment_type="pump", zone="PS-01", status="standby"),
-    dict(tag_number="LV-601", name="Truck Loading Arm Valve", equipment_type="valve", zone="LR-01"),
-    dict(tag_number="LV-602", name="Rail Loading Arm Valve", equipment_type="valve", zone="LR-01"),
-    dict(tag_number="FS-701", name="Main Flare Stack", equipment_type="vessel", zone="FS-01", criticality="safety_critical"),
-]
-
-SENSORS = [
-    dict(tag_number="TT-101", sensor_type="temperature", unit_of_measure="C", zone="PU-01", equipment="E-101"),
-    dict(tag_number="PT-101", sensor_type="pressure", unit_of_measure="psi", zone="PU-01", equipment="V-101"),
-    dict(tag_number="LT-101", sensor_type="level", unit_of_measure="%", zone="PU-01", equipment="V-101"),
-    dict(tag_number="GD-101", sensor_type="gas_detection", unit_of_measure="ppm", zone="PU-01", equipment=None),
-    dict(tag_number="TT-201", sensor_type="temperature", unit_of_measure="C", zone="PU-02", equipment="R-201"),
-    dict(tag_number="PT-201", sensor_type="pressure", unit_of_measure="psi", zone="PU-02", equipment="R-201"),
-    dict(tag_number="FT-201", sensor_type="flow", unit_of_measure="m3/h", zone="PU-02", equipment="C-201"),
-    dict(tag_number="GD-201", sensor_type="gas_detection", unit_of_measure="ppm", zone="PU-02", equipment=None),
-    dict(tag_number="PT-301", sensor_type="pressure", unit_of_measure="psi", zone="UT-01", equipment="B-301"),
-    dict(tag_number="FT-301", sensor_type="flow", unit_of_measure="m3/h", zone="UT-01", equipment="K-301"),
-    dict(tag_number="VT-301", sensor_type="vibration", unit_of_measure="mm/s", zone="UT-01", equipment="K-301"),
-    dict(tag_number="LT-401", sensor_type="level", unit_of_measure="%", zone="TF-01", equipment="T-401"),
-    dict(tag_number="TT-401", sensor_type="temperature", unit_of_measure="C", zone="TF-01", equipment="T-401"),
-    dict(tag_number="LT-402", sensor_type="level", unit_of_measure="%", zone="TF-01", equipment="T-402"),
-    dict(tag_number="GD-401", sensor_type="gas_detection", unit_of_measure="ppm", zone="TF-01", equipment=None),
-    dict(tag_number="PT-501", sensor_type="pressure", unit_of_measure="psi", zone="PS-01", equipment="P-501A"),
-    dict(tag_number="VT-501", sensor_type="vibration", unit_of_measure="mm/s", zone="PS-01", equipment="P-501A"),
-    dict(tag_number="VT-502", sensor_type="vibration", unit_of_measure="mm/s", zone="PS-01", equipment="P-501B"),
-    dict(tag_number="FT-601", sensor_type="flow", unit_of_measure="m3/h", zone="LR-01", equipment=None),
-    dict(tag_number="GD-601", sensor_type="gas_detection", unit_of_measure="ppm", zone="LR-01", equipment=None),
-    dict(tag_number="TT-701", sensor_type="temperature", unit_of_measure="C", zone="FS-01", equipment="FS-701"),
-    dict(tag_number="GD-701", sensor_type="gas_detection", unit_of_measure="ppm", zone="FS-01", equipment=None),
-    dict(tag_number="SD-001", sensor_type="smoke", unit_of_measure="% obs/m", zone="CR-01", equipment=None),
-]
-
+# A believable opening state for the permit board; the simulator takes over from here.
 PERMITS = [
     dict(
-        permit_number="PTW-2026-0101", permit_type="hot_work", zone="PU-01", equipment="P-101A",
-        description="Weld repair on feed pump discharge flange.",
-        requested_by="EMP-1014", approved_by="EMP-1002", status="active",
+        permit_number="PTW-2026-0101", permit_type="hot_work", zone="CDU-100", equipment="100-E-101",
+        required_isolation="gas_test_and_fire_watch",
+        description="Weld repair on Crude Preheat Exchanger (100-E-101) shell nozzle.",
+        requested_by="EMP-1015", approved_by="EMP-1002", status="active",
         valid_from=days_ago(0), valid_until=days_from_now(2),
     ),
     dict(
-        permit_number="PTW-2026-0102", permit_type="confined_space", zone="TF-01", equipment="T-401",
-        description="Internal tank inspection ahead of scheduled turnaround.",
-        requested_by="EMP-1013", approved_by="EMP-1003", status="approved",
+        permit_number="PTW-2026-0102", permit_type="confined_space", zone="TKF-01", equipment="TK-301",
+        required_isolation="blind_purge_and_gas_test",
+        description="Internal inspection of Crude Storage Tank 1 ahead of scheduled turnaround.",
+        requested_by="EMP-1015", approved_by="EMP-1003", status="approved",
         valid_from=days_from_now(1), valid_until=days_from_now(3),
     ),
     dict(
-        permit_number="PTW-2026-0103", permit_type="lockout_tagout", zone="PS-01", equipment="P-501B",
-        description="Mechanical seal replacement on standby transfer pump.",
-        requested_by="EMP-1011", approved_by="EMP-1004", status="active",
+        permit_number="PTW-2026-0103", permit_type="lockout_tagout", zone="PMP-01", equipment="P-501B",
+        required_isolation="lockout_tagout",
+        description="Mechanical seal replacement on Product Transfer Pump B (P-501B).",
+        requested_by="EMP-1013", approved_by="EMP-1004", status="active",
         valid_from=days_ago(1), valid_until=days_from_now(1),
     ),
     dict(
-        permit_number="PTW-2026-0104", permit_type="working_at_height", zone="FS-01", equipment="FS-701",
-        description="Flare tip inspection via elevated platform.",
-        requested_by="EMP-1015", approved_by=None, status="pending_approval",
+        permit_number="PTW-2026-0104", permit_type="working_at_height", zone="FLR-01", equipment="FS-701",
+        required_isolation="none",
+        description="Flare tip pilot inspection via elevated platform.",
+        requested_by="EMP-1020", approved_by=None, status="pending_approval",
         valid_from=None, valid_until=None,
     ),
     dict(
-        permit_number="PTW-2026-0105", permit_type="excavation", zone="TF-01", equipment=None,
-        description="Excavation for tank farm secondary containment repair.",
-        requested_by="EMP-1016", approved_by="EMP-1003", status="closed",
+        permit_number="PTW-2026-0105", permit_type="line_breaking", zone="LDB-01", equipment="LA-601",
+        required_isolation="depressurize_drain_and_blind",
+        description="Swivel joint replacement on Truck Loading Arm No. 1 (LA-601).",
+        requested_by="EMP-1014", approved_by="EMP-1003", status="closed",
         valid_from=days_ago(10), valid_until=days_ago(6),
     ),
     dict(
-        permit_number="PTW-2026-0106", permit_type="electrical", zone="UT-01", equipment="K-301",
-        description="Motor control center inspection on instrument air compressor.",
-        requested_by="EMP-1013", approved_by="EMP-1002", status="expired",
+        permit_number="PTW-2026-0106", permit_type="electrical", zone="UTL-01", equipment="K-401",
+        required_isolation="electrical_isolation",
+        description="Motor control center inspection for Instrument Air Compressor A (K-401).",
+        requested_by="EMP-1018", approved_by="EMP-1002", status="expired",
         valid_from=days_ago(20), valid_until=days_ago(18),
     ),
     dict(
-        permit_number="PTW-2026-0107", permit_type="hot_work", zone="PU-02", equipment="F-201",
-        description="Refractory repair on reformer charge heater.",
-        requested_by="EMP-1014", approved_by=None, status="draft",
+        permit_number="PTW-2026-0107", permit_type="hot_work", zone="VDU-200", equipment="200-H-201",
+        required_isolation="gas_test_and_fire_watch",
+        description="Refractory repair on Vacuum Charge Heater (200-H-201).",
+        requested_by="EMP-1015", approved_by=None, status="draft",
         valid_from=None, valid_until=None,
     ),
     dict(
-        permit_number="PTW-2026-0108", permit_type="confined_space", zone="LR-01", equipment=None,
-        description="Loading rack sump entry — withdrawn pending re-assessment.",
-        requested_by="EMP-1012", approved_by="EMP-1004", status="revoked",
+        permit_number="PTW-2026-0108", permit_type="confined_space", zone="FLR-01", equipment="D-701",
+        required_isolation="blind_purge_and_gas_test",
+        description="Flare knock-out drum entry — withdrawn pending gas-test re-assessment.",
+        requested_by="EMP-1020", approved_by="EMP-1004", status="revoked",
         valid_from=days_ago(5), valid_until=days_ago(4),
     ),
 ]
 
 EVENTS = [
-    dict(event_type="worker_check_in", title="Shift check-in", zone="CR-01", equipment=None, permit=None, recorded_by="EMP-1004", occurred_at=days_ago(0)),
-    dict(event_type="worker_check_in", title="Shift check-in", zone="PU-01", equipment=None, permit=None, recorded_by="EMP-1008", occurred_at=days_ago(0)),
-    dict(event_type="worker_check_out", title="Shift check-out", zone="PU-02", equipment=None, permit=None, recorded_by="EMP-1009", occurred_at=days_ago(1)),
-    dict(event_type="equipment_status_change", title="Tank taken offline for maintenance", zone="TF-01", equipment="T-402", permit=None, recorded_by="EMP-1013", occurred_at=days_ago(3)),
-    dict(event_type="equipment_status_change", title="Pump B placed on standby", zone="PS-01", equipment="P-501B", permit=None, recorded_by="EMP-1011", occurred_at=days_ago(2)),
-    dict(event_type="maintenance_logged", title="Routine exchanger cleaning completed", zone="PU-01", equipment="E-101", permit=None, recorded_by="EMP-1014", occurred_at=days_ago(7)),
-    dict(event_type="general", title="Quarterly safety walkthrough completed", zone="CR-01", equipment=None, permit=None, recorded_by="EMP-1002", occurred_at=days_ago(4)),
-    dict(event_type="permit_issued", title="Permit PTW-2026-0101 submitted", zone="PU-01", equipment="P-101A", permit="PTW-2026-0101", recorded_by="EMP-1014", occurred_at=days_ago(1)),
-    dict(event_type="permit_approved", title="Permit PTW-2026-0101 approved", zone="PU-01", equipment="P-101A", permit="PTW-2026-0101", recorded_by="EMP-1002", occurred_at=days_ago(0)),
-    dict(event_type="permit_issued", title="Permit PTW-2026-0102 submitted", zone="TF-01", equipment="T-401", permit="PTW-2026-0102", recorded_by="EMP-1013", occurred_at=days_ago(2)),
-    dict(event_type="permit_approved", title="Permit PTW-2026-0102 approved", zone="TF-01", equipment="T-401", permit="PTW-2026-0102", recorded_by="EMP-1003", occurred_at=days_ago(1)),
-    dict(event_type="permit_issued", title="Permit PTW-2026-0103 submitted", zone="PS-01", equipment="P-501B", permit="PTW-2026-0103", recorded_by="EMP-1011", occurred_at=days_ago(2)),
-    dict(event_type="permit_approved", title="Permit PTW-2026-0103 approved", zone="PS-01", equipment="P-501B", permit="PTW-2026-0103", recorded_by="EMP-1004", occurred_at=days_ago(1)),
-    dict(event_type="permit_issued", title="Permit PTW-2026-0104 submitted", zone="FS-01", equipment="FS-701", permit="PTW-2026-0104", recorded_by="EMP-1015", occurred_at=days_ago(0)),
-    dict(event_type="permit_issued", title="Permit PTW-2026-0105 submitted", zone="TF-01", equipment=None, permit="PTW-2026-0105", recorded_by="EMP-1016", occurred_at=days_ago(11)),
-    dict(event_type="permit_approved", title="Permit PTW-2026-0105 approved", zone="TF-01", equipment=None, permit="PTW-2026-0105", recorded_by="EMP-1003", occurred_at=days_ago(10)),
-    dict(event_type="permit_closed", title="Permit PTW-2026-0105 closed out", zone="TF-01", equipment=None, permit="PTW-2026-0105", recorded_by="EMP-1016", occurred_at=days_ago(6)),
-    dict(event_type="permit_issued", title="Permit PTW-2026-0108 submitted", zone="LR-01", equipment=None, permit="PTW-2026-0108", recorded_by="EMP-1012", occurred_at=days_ago(5)),
-    dict(event_type="general", title="Permit PTW-2026-0108 revoked pending re-assessment", zone="LR-01", equipment=None, permit="PTW-2026-0108", recorded_by="EMP-1004", occurred_at=days_ago(4)),
+    dict(event_type="worker_check_in", title="Day shift check-in", zone="CCR-01", equipment=None, permit=None, recorded_by="EMP-1004", occurred_at=days_ago(0)),
+    dict(event_type="worker_check_in", title="Unit 100 field round started", zone="CDU-100", equipment=None, permit=None, recorded_by="EMP-1010", occurred_at=days_ago(0)),
+    dict(event_type="worker_check_out", title="Night shift check-out", zone="VDU-200", equipment=None, permit=None, recorded_by="EMP-1011", occurred_at=days_ago(1)),
+    dict(event_type="equipment_status_change", title="Crude Charge Pump B placed on standby", zone="CDU-100", equipment="100-P-101B", permit=None, recorded_by="EMP-1010", occurred_at=days_ago(2)),
+    dict(event_type="equipment_status_change", title="Instrument Air Compressor B placed on standby", zone="UTL-01", equipment="K-402", permit=None, recorded_by="EMP-1019", occurred_at=days_ago(3)),
+    dict(event_type="maintenance_logged", title="Exchanger bundle cleaning completed", zone="CDU-100", equipment="100-E-101", permit=None, recorded_by="EMP-1015", occurred_at=days_ago(7)),
+    dict(event_type="general", title="Quarterly refinery safety walkthrough completed", zone="CCR-01", equipment=None, permit=None, recorded_by="EMP-1002", occurred_at=days_ago(4)),
+    dict(event_type="general", title="Weekly fire pump test run completed", zone="FWS-01", equipment="P-802", permit=None, recorded_by="EMP-1002", occurred_at=days_ago(2)),
+    dict(event_type="permit_issued", title="Permit PTW-2026-0101 submitted", zone="CDU-100", equipment="100-E-101", permit="PTW-2026-0101", recorded_by="EMP-1015", occurred_at=days_ago(1)),
+    dict(event_type="permit_approved", title="Permit PTW-2026-0101 approved", zone="CDU-100", equipment="100-E-101", permit="PTW-2026-0101", recorded_by="EMP-1002", occurred_at=days_ago(0)),
+    dict(event_type="permit_issued", title="Permit PTW-2026-0102 submitted", zone="TKF-01", equipment="TK-301", permit="PTW-2026-0102", recorded_by="EMP-1015", occurred_at=days_ago(2)),
+    dict(event_type="permit_approved", title="Permit PTW-2026-0102 approved", zone="TKF-01", equipment="TK-301", permit="PTW-2026-0102", recorded_by="EMP-1003", occurred_at=days_ago(1)),
+    dict(event_type="permit_issued", title="Permit PTW-2026-0103 submitted", zone="PMP-01", equipment="P-501B", permit="PTW-2026-0103", recorded_by="EMP-1013", occurred_at=days_ago(2)),
+    dict(event_type="permit_approved", title="Permit PTW-2026-0103 approved", zone="PMP-01", equipment="P-501B", permit="PTW-2026-0103", recorded_by="EMP-1004", occurred_at=days_ago(1)),
+    dict(event_type="permit_issued", title="Permit PTW-2026-0104 submitted", zone="FLR-01", equipment="FS-701", permit="PTW-2026-0104", recorded_by="EMP-1020", occurred_at=days_ago(0)),
+    dict(event_type="permit_closed", title="Permit PTW-2026-0105 closed out", zone="LDB-01", equipment="LA-601", permit="PTW-2026-0105", recorded_by="EMP-1014", occurred_at=days_ago(6)),
+    dict(event_type="general", title="Permit PTW-2026-0108 revoked pending re-assessment", zone="FLR-01", equipment="D-701", permit="PTW-2026-0108", recorded_by="EMP-1004", occurred_at=days_ago(4)),
 ]
 
 
 async def seed() -> None:
+    definition = get_plant_type(PLANT_TYPE)
+
     async with AsyncSessionLocal() as session:
-        plant = Plant(
-            code="RPF-01",
-            name="Riverbend Processing Facility",
-            description="A single-site crude processing and product distribution facility.",
-            city="Riverbend",
-            region="TX",
-            country="USA",
-            latitude=29.7604,
-            longitude=-95.3698,
-            timezone="America/Chicago",
-        )
+        plant = Plant(**PLANT)
         session.add(plant)
         await session.flush()
 
         zones_by_code: dict[str, Zone] = {}
-        for data in ZONES:
-            zone = Zone(plant_id=plant.id, **data)
+        equipment_by_tag: dict[str, Equipment] = {}
+        sensor_count = 0
+
+        for zone_template in definition.zones:
+            zone = Zone(
+                plant_id=plant.id,
+                code=zone_template.code,
+                name=zone_template.name,
+                zone_type=zone_template.zone_type,
+                zone_category=zone_template.zone_category.value,
+                description=zone_template.description,
+                grid_row=zone_template.grid_row,
+                grid_col=zone_template.grid_col,
+            )
             session.add(zone)
-            zones_by_code[data["code"]] = zone
+            zones_by_code[zone_template.code] = zone
+            await session.flush()
+
+            for equipment_template in zone_template.equipment:
+                equipment = Equipment(
+                    zone_id=zone.id,
+                    tag_number=equipment_template.tag,
+                    name=equipment_template.name,
+                    equipment_type=equipment_template.equipment_type,
+                    status=equipment_template.status,
+                    criticality=equipment_template.criticality,
+                    manufacturer=equipment_template.manufacturer,
+                )
+                session.add(equipment)
+                equipment_by_tag[equipment_template.tag] = equipment
+            await session.flush()
+
+            for sensor_template in zone_template.sensors:
+                type_spec = definition.sensor_types[sensor_template.sensor_type]
+                sensor = Sensor(
+                    zone_id=zone.id,
+                    equipment_id=(
+                        equipment_by_tag[sensor_template.equipment_tag].id
+                        if sensor_template.equipment_tag
+                        else None
+                    ),
+                    tag_number=sensor_template.tag,
+                    sensor_type=sensor_template.sensor_type,
+                    unit_of_measure=sensor_template.unit or type_spec.unit,
+                    installation_date=date(2024, 1, 15),
+                    normal_min=sensor_template.range.normal_min,
+                    normal_max=sensor_template.range.normal_max,
+                    warning_min=sensor_template.range.warning_min,
+                    warning_max=sensor_template.range.warning_max,
+                    critical_min=sensor_template.range.critical_min,
+                    critical_max=sensor_template.range.critical_max,
+                    sampling_interval_seconds=(
+                        sensor_template.sampling_interval_seconds
+                        or type_spec.sampling_interval_seconds
+                    ),
+                )
+                session.add(sensor)
+                sensor_count += 1
         await session.flush()
 
         workers_by_employee_id: dict[str, Worker] = {}
-        for data in WORKERS:
-            zone_code = data.pop("zone")
-            zone_id = zones_by_code[zone_code].id if zone_code else None
+        for worker_template in definition.workers:
+            zone_id = (
+                zones_by_code[worker_template.zone_code].id if worker_template.zone_code else None
+            )
             worker = Worker(
+                employee_id=worker_template.employee_id,
+                first_name=worker_template.first_name,
+                last_name=worker_template.last_name,
+                role=worker_template.role,
+                shift=worker_template.shift,
+                employment_status=worker_template.employment_status,
                 primary_zone_id=zone_id,
                 current_zone_id=zone_id,  # everyone starts at their station
-                employment_status=data.pop("employment_status", "active"),
-                **data,
             )
             session.add(worker)
             workers_by_employee_id[worker.employee_id] = worker
         await session.flush()
 
-        equipment_by_tag: dict[str, Equipment] = {}
-        for data in EQUIPMENT:
-            zone_code = data.pop("zone")
-            equipment = Equipment(zone_id=zones_by_code[zone_code].id, **data)
-            session.add(equipment)
-            equipment_by_tag[equipment.tag_number] = equipment
-        await session.flush()
-
-        for data in SENSORS:
-            zone_code = data.pop("zone")
-            equipment_tag = data.pop("equipment")
-            sensor = Sensor(
-                zone_id=zones_by_code[zone_code].id,
-                equipment_id=equipment_by_tag[equipment_tag].id if equipment_tag else None,
-                installation_date=date(2024, 1, 15),
-                **data,
-            )
-            session.add(sensor)
-        await session.flush()
-
         permits_by_number: dict[str, Permit] = {}
         for data in PERMITS:
+            data = dict(data)
             zone_code = data.pop("zone")
             equipment_tag = data.pop("equipment")
             requested_by_emp = data.pop("requested_by")
@@ -303,6 +231,7 @@ async def seed() -> None:
         await session.flush()
 
         for data in EVENTS:
+            data = dict(data)
             zone_code = data.pop("zone")
             equipment_tag = data.pop("equipment")
             permit_number = data.pop("permit")
@@ -319,8 +248,9 @@ async def seed() -> None:
         await session.commit()
 
     print(
-        f"Seeded 1 plant, {len(ZONES)} zones, {len(WORKERS)} workers, {len(EQUIPMENT)} equipment, "
-        f"{len(SENSORS)} sensors, {len(PERMITS)} permits, {len(EVENTS)} events."
+        f"Seeded {PLANT['name']} ({definition.label}): {len(definition.zones)} zones, "
+        f"{len(definition.workers)} workers, {len(equipment_by_tag)} equipment, "
+        f"{sensor_count} sensors, {len(PERMITS)} permits, {len(EVENTS)} events."
     )
 
 
