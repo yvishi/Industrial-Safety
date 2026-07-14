@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     simulation_tick_seconds: float = 5.0
     sensor_reading_retention_hours: int = 24
 
+    # Compound Risk Engine (runs inside the API process when enabled, on its own interval —
+    # deliberately decoupled from simulation_tick_seconds; see app/risk_engine/runner.py for
+    # the standalone-process alternative).
+    risk_engine_enabled: bool = True
+    risk_evaluation_interval_seconds: float = 15.0
+
 
 @lru_cache
 def get_settings() -> Settings:

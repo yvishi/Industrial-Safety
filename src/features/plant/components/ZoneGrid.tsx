@@ -1,15 +1,20 @@
 import { useState } from 'react'
 import { Users } from 'lucide-react'
+import { StatusPill } from '@/components/ui/StatusPill'
 import { ZoneCard } from './ZoneCard'
 import { ZoneSummaryModal } from './ZoneSummaryModal'
 import type { Permit } from '../types/permit'
+import type { RiskAssessment } from '../types/risk'
 import type { ZoneState } from '../types/state'
+import { RISK_LEVEL_LABEL, riskLevelStatus } from '../utils/riskDisplay'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 
 export interface ZoneGridProps {
   zones: ZoneState[]
   /** Plant-wide active permits — filtered per zone for the summary popup. */
   activePermits: Permit[]
+  /** Live Compound Risk Engine assessment per zone, keyed by zone id — absent while loading. */
+  riskByZoneId: Map<string, RiskAssessment>
 }
 
 /**
@@ -17,7 +22,7 @@ export interface ZoneGridProps {
  * simplified site plan rather than an arbitrary card list. Below that it falls back to a plain
  * flowing grid — the zone array is already ordered to read sensibly either way.
  */
-export function ZoneGrid({ zones, activePermits }: ZoneGridProps) {
+export function ZoneGrid({ zones, activePermits, riskByZoneId }: ZoneGridProps) {
   const isSpatialLayout = useMediaQuery('(min-width: 1024px)')
   const columnCount = zones.reduce((max, { zone }) => Math.max(max, zone.gridPosition.col), 1)
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null)
@@ -30,31 +35,43 @@ export function ZoneGrid({ zones, activePermits }: ZoneGridProps) {
         className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
         style={isSpatialLayout ? { gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` } : undefined}
       >
-        {zones.map(({ zone, workers }) => (
-          <ZoneCard
-            key={zone.id}
-            zone={zone}
-            onClick={() => setSelectedZoneId(zone.id)}
-            metricsSlot={
-              <div className="flex items-center gap-1.5 text-xs text-text-muted">
-                <Users className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>
-                  {workers.length} {workers.length === 1 ? 'worker' : 'workers'}
-                </span>
-              </div>
-            }
-            style={
-              isSpatialLayout
-                ? { gridColumn: zone.gridPosition.col, gridRow: zone.gridPosition.row }
-                : undefined
-            }
-          />
-        ))}
+        {zones.map(({ zone, workers }) => {
+          const riskAssessment = riskByZoneId.get(zone.id)
+          return (
+            <ZoneCard
+              key={zone.id}
+              zone={zone}
+              onClick={() => setSelectedZoneId(zone.id)}
+              statusSlot={
+                riskAssessment && (
+                  <StatusPill
+                    status={riskLevelStatus(riskAssessment.level)}
+                    label={RISK_LEVEL_LABEL[riskAssessment.level]}
+                  />
+                )
+              }
+              metricsSlot={
+                <div className="flex items-center gap-1.5 text-xs text-text-muted">
+                  <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>
+                    {workers.length} {workers.length === 1 ? 'worker' : 'workers'}
+                  </span>
+                </div>
+              }
+              style={
+                isSpatialLayout
+                  ? { gridColumn: zone.gridPosition.col, gridRow: zone.gridPosition.row }
+                  : undefined
+              }
+            />
+          )
+        })}
       </div>
 
       <ZoneSummaryModal
         zoneState={selectedZoneState}
         permits={activePermits.filter((permit) => permit.zoneId === selectedZoneId)}
+        riskAssessment={selectedZoneId ? riskByZoneId.get(selectedZoneId) : undefined}
         isOpen={selectedZoneId !== null}
         onClose={() => setSelectedZoneId(null)}
       />

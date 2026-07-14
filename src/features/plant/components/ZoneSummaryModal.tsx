@@ -6,18 +6,23 @@ import { buttonVariants } from '@/components/ui/Button'
 import { buildZonePath } from '@/app/routes'
 import type { ZoneState } from '../types/state'
 import type { Permit } from '../types/permit'
+import type { RiskAssessment } from '../types/risk'
 import { ZoneTypeIcon, ZONE_TYPE_LABEL } from './ZoneTypeIcon'
 import { MetricRow } from './MetricRow'
 import { summarizeZoneHealth } from '../utils/zoneHealth'
+import { RISK_LEVEL_BORDER_CLASS, RISK_LEVEL_LABEL, riskLevelStatus } from '../utils/riskDisplay'
 
 export interface ZoneSummaryModalProps {
   zoneState: ZoneState | undefined
   permits: Permit[]
+  /** Live Compound Risk Engine assessment for this zone — undefined while still loading, in
+   * which case the modal falls back to the raw operational health check below. */
+  riskAssessment: RiskAssessment | undefined
   isOpen: boolean
   onClose: () => void
 }
 
-export function ZoneSummaryModal({ zoneState, permits, isOpen, onClose }: ZoneSummaryModalProps) {
+export function ZoneSummaryModal({ zoneState, permits, riskAssessment, isOpen, onClose }: ZoneSummaryModalProps) {
   if (!zoneState) return null
 
   const { zone, workers, equipment, sensors } = zoneState
@@ -27,11 +32,20 @@ export function ZoneSummaryModal({ zoneState, permits, isOpen, onClose }: ZoneSu
     sensors,
   })
 
+  const borderClass = riskAssessment
+    ? RISK_LEVEL_BORDER_CLASS[riskAssessment.level]
+    : isHealthy
+      ? 'border-t-success'
+      : 'border-t-warning'
+  const statusPillProps = riskAssessment
+    ? { status: riskLevelStatus(riskAssessment.level), label: RISK_LEVEL_LABEL[riskAssessment.level] }
+    : { status: isHealthy ? ('operational' as const) : ('warning' as const), label: isHealthy ? 'Operational' : 'Attention Needed' }
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className={isHealthy ? 'border-t-4 border-t-success' : 'border-t-4 border-t-warning'}
+      className={`border-t-4 ${borderClass}`}
       title={
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-surface-sunken text-text-secondary">
@@ -58,11 +72,13 @@ export function ZoneSummaryModal({ zoneState, permits, isOpen, onClose }: ZoneSu
     >
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-sunken px-4 py-3">
-          <span className="text-sm font-medium text-text-primary">Zone Status</span>
-          <StatusPill
-            status={isHealthy ? 'operational' : 'warning'}
-            label={isHealthy ? 'Operational' : 'Attention Needed'}
-          />
+          <span className="text-sm font-medium text-text-primary">Risk Level</span>
+          <div className="flex items-center gap-2">
+            {riskAssessment && (
+              <span className="font-mono text-xs text-text-muted">{riskAssessment.score}/100</span>
+            )}
+            <StatusPill status={statusPillProps.status} label={statusPillProps.label} />
+          </div>
         </div>
 
         <dl className="flex flex-col divide-y divide-border">
@@ -90,13 +106,25 @@ export function ZoneSummaryModal({ zoneState, permits, isOpen, onClose }: ZoneSu
           ))}
         </dl>
 
-        <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
-          <span className="text-sm font-medium text-text-primary">Overall Health</span>
-          <StatusPill
-            status={isHealthy ? 'operational' : 'warning'}
-            label={isHealthy ? 'Healthy' : 'Needs Attention'}
-          />
-        </div>
+        {riskAssessment && (
+          <div className="flex flex-col gap-2 border-t border-border pt-3">
+            <span className="text-sm font-medium text-text-primary">Compound Risk Engine</span>
+            <p className="text-xs text-text-secondary">{riskAssessment.explanation}</p>
+            {riskAssessment.contributors.length > 0 && (
+              <ul className="flex flex-col gap-1.5">
+                {riskAssessment.contributors.slice(0, 3).map((contributor) => (
+                  <li key={contributor.ruleId} className="flex items-center justify-between gap-3 text-xs">
+                    <span className="text-text-secondary">{contributor.factor}</span>
+                    <span className="font-mono text-text-muted">+{contributor.impact}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <span className="text-xs text-text-muted">
+              Confidence: {riskAssessment.confidenceLabel} · {riskAssessment.engineVersion}
+            </span>
+          </div>
+        )}
       </div>
     </Modal>
   )

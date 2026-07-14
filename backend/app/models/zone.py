@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 from uuid import UUID as UUIDType
 
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import Boolean, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -38,6 +38,10 @@ class Zone(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # Approximate physical adjacency on site — mirrors the frontend's ZoneGrid layout.
     grid_row: Mapped[int | None] = mapped_column(Integer)
     grid_col: Mapped[int | None] = mapped_column(Integer)
+
+    # Manual/external emergency-shutdown flag for v1 — a stand-in for a future real ESD/DCS
+    # integration. Settable via PATCH; the Risk Engine reads it as a fact, never sets it itself.
+    emergency_shutdown_active: Mapped[bool] = mapped_column(Boolean, default=False)
 
     plant: Mapped["Plant"] = relationship(back_populates="zones")
     workers: Mapped[list["Worker"]] = relationship(

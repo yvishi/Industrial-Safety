@@ -25,6 +25,8 @@ class EventType(str, Enum):
     SENSOR_CRITICAL = "sensor_critical"
     SENSOR_RECOVERED = "sensor_recovered"
     MAINTENANCE_LOGGED = "maintenance_logged"
+    EMERGENCY_SHUTDOWN_ACTIVATED = "emergency_shutdown_activated"
+    EMERGENCY_SHUTDOWN_CLEARED = "emergency_shutdown_cleared"
     GENERAL = "general"
 
 

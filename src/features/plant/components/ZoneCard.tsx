@@ -7,7 +7,7 @@ import { cn } from '@/utils/cn'
 export interface ZoneCardProps {
   zone: Zone
   onClick: () => void
-  /** Reserved for a future live-status indicator (e.g. risk level). Renders nothing today. */
+  /** Compound Risk Engine level badge, or nothing while risk data is still loading. */
   statusSlot?: ReactNode
   /** Reserved for future metric badges (e.g. active sensors, open alerts). Renders nothing today. */
   metricsSlot?: ReactNode

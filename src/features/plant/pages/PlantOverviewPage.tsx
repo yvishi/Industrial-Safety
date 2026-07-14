@@ -7,6 +7,7 @@ import { usePolling } from '@/hooks/usePolling'
 import { ZoneGrid } from '../components/ZoneGrid'
 import { LiveIndicator } from '../components/LiveIndicator'
 import { fetchPlantState } from '../services/plantService'
+import { fetchPlantRisk } from '../services/riskService'
 
 const POLL_INTERVAL_MS = 5000
 
@@ -22,6 +23,10 @@ function ZoneGridSkeleton() {
 
 export function PlantOverviewPage() {
   const { data: state, error, isLoading } = usePolling(fetchPlantState, POLL_INTERVAL_MS)
+  // Supplementary — if the Risk Engine is unreachable, zones just render without risk badges
+  // rather than blocking the whole page (unlike the primary /state poll above).
+  const { data: riskSummary } = usePolling(fetchPlantRisk, POLL_INTERVAL_MS)
+  const riskByZoneId = new Map(riskSummary?.zones.map((assessment) => [assessment.zoneId, assessment]))
 
   if (isLoading) {
     return (
@@ -59,7 +64,7 @@ export function PlantOverviewPage() {
           </div>
         }
       />
-      <ZoneGrid zones={state.zones} activePermits={state.activePermits} />
+      <ZoneGrid zones={state.zones} activePermits={state.activePermits} riskByZoneId={riskByZoneId} />
     </div>
   )
 }

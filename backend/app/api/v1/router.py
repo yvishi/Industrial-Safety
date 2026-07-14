@@ -5,6 +5,7 @@ from app.api.v1.endpoints import (
     events,
     permits,
     plants,
+    risk,
     sensors,
     state,
     workers,
@@ -21,3 +22,4 @@ api_router.include_router(equipment.router)
 api_router.include_router(sensors.router)
 api_router.include_router(permits.router)
 api_router.include_router(events.router)
+api_router.include_router(risk.router)

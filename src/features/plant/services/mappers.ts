@@ -2,14 +2,32 @@ import type { Equipment, EquipmentStatus, EquipmentType } from '../types/equipme
 import type { PlantEvent } from '../types/event'
 import type { PlantProfile } from '../types/plant'
 import type { Permit, PermitStatus, PermitType } from '../types/permit'
+import type {
+  CategoryRisk,
+  ConfidenceLevel,
+  PlantRiskSummary,
+  RecommendedAction,
+  RiskAssessment,
+  RiskCategoryKey,
+  RiskContributor,
+  RiskEntityRef,
+  RiskLevel,
+  TrendDirection,
+} from '../types/risk'
 import type { Sensor, SensorStatus, SensorType } from '../types/sensor'
 import type { Shift, Worker, WorkerRole } from '../types/worker'
 import type { Zone, ZoneCategory, ZoneType } from '../types/zone'
 import type {
+  RawCategoryRisk,
   RawEquipment,
   RawEvent,
   RawPermit,
   RawPlant,
+  RawPlantRiskSummary,
+  RawRecommendedAction,
+  RawRiskAssessment,
+  RawRiskContributor,
+  RawRiskEntityRef,
   RawSensor,
   RawWorker,
   RawZone,
@@ -99,5 +117,65 @@ export function mapEvent(raw: RawEvent): PlantEvent {
     description: raw.description,
     occurredAt: raw.occurred_at,
     zoneId: raw.zone_id,
+  }
+}
+
+function mapRiskEntityRef(raw: RawRiskEntityRef): RiskEntityRef {
+  return { entityType: raw.entity_type, entityId: raw.entity_id, label: raw.label }
+}
+
+function mapRiskContributor(raw: RawRiskContributor): RiskContributor {
+  return {
+    ruleId: raw.rule_id,
+    category: raw.category as RiskCategoryKey,
+    factor: raw.factor,
+    impact: raw.impact,
+    severity: raw.severity,
+    rationale: raw.rationale,
+    sourceRefs: raw.source_refs.map(mapRiskEntityRef),
+  }
+}
+
+function mapRecommendedAction(raw: RawRecommendedAction): RecommendedAction {
+  return { ruleId: raw.rule_id, action: raw.action, priority: raw.priority }
+}
+
+function mapCategoryRisk(raw: RawCategoryRisk): CategoryRisk {
+  return {
+    category: raw.category as RiskCategoryKey,
+    score: raw.score,
+    level: raw.level as RiskLevel,
+    topContributor: raw.top_contributor,
+  }
+}
+
+export function mapRiskAssessment(raw: RawRiskAssessment): RiskAssessment {
+  return {
+    zoneId: raw.zone_id,
+    zoneName: raw.zone_name,
+    engineVersion: raw.engine_version,
+    score: raw.score,
+    level: raw.level as RiskLevel,
+    isEmergencyOverride: raw.is_emergency_override,
+    confidenceScore: raw.confidence_score,
+    confidenceLabel: raw.confidence_label as ConfidenceLevel,
+    categories: raw.categories.map(mapCategoryRisk),
+    contributors: raw.contributors.map(mapRiskContributor),
+    recommendedActions: raw.recommended_actions.map(mapRecommendedAction),
+    previousScore: raw.previous_score,
+    scoreDelta: raw.score_delta,
+    trendDirection: raw.trend_direction as TrendDirection | null,
+    explanation: raw.explanation,
+    triggeredRules: raw.triggered_rules,
+    evaluatedAt: raw.evaluated_at,
+  }
+}
+
+export function mapPlantRiskSummary(raw: RawPlantRiskSummary): PlantRiskSummary {
+  return {
+    generatedAt: raw.generated_at,
+    zones: raw.zones.map(mapRiskAssessment),
+    highestRiskZoneId: raw.highest_risk_zone_id,
+    plantWideEmergencyActive: raw.plant_wide_emergency_active,
   }
 }

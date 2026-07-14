@@ -37,6 +37,9 @@ class ZoneBase(BaseModel):
     description: str | None = None
     grid_row: int | None = None
     grid_col: int | None = None
+    # Manual/external emergency-shutdown flag (stand-in for a future real ESD/DCS
+    # integration). Toggling it is audit-logged by ZoneService as an Event.
+    emergency_shutdown_active: bool = False
 
 
 class ZoneCreate(ZoneBase):
@@ -51,6 +54,7 @@ class ZoneUpdate(BaseModel):
     description: str | None = None
     grid_row: int | None = None
     grid_col: int | None = None
+    emergency_shutdown_active: bool | None = None
 
 
 class ZoneRead(ZoneBase, TimestampedRead):

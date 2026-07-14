@@ -5,6 +5,7 @@ from app.models.equipment import Equipment
 from app.models.event import Event
 from app.models.permit import Permit
 from app.models.plant import Plant
+from app.models.risk_snapshot import RiskSnapshot
 from app.models.sensor import Sensor, SensorReading
 from app.models.worker import Worker
 from app.models.zone import Zone
@@ -15,6 +16,7 @@ __all__ = [
     "Event",
     "Permit",
     "Plant",
+    "RiskSnapshot",
     "Sensor",
     "SensorReading",
     "Worker",

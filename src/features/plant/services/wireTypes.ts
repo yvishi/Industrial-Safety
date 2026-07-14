@@ -103,3 +103,59 @@ export interface RawPage<T> {
   page: number
   page_size: number
 }
+
+export interface RawRiskEntityRef {
+  entity_type: string
+  entity_id: string
+  label: string
+}
+
+export interface RawRiskContributor {
+  rule_id: string
+  category: string
+  factor: string
+  impact: number
+  severity: string
+  rationale: string
+  source_refs: RawRiskEntityRef[]
+}
+
+export interface RawRecommendedAction {
+  rule_id: string
+  action: string
+  priority: string
+}
+
+export interface RawCategoryRisk {
+  category: string
+  score: number
+  level: string
+  top_contributor: string | null
+}
+
+export interface RawRiskAssessment {
+  zone_id: string
+  zone_name: string
+  engine_version: string
+  score: number
+  level: string
+  is_emergency_override: boolean
+  confidence_score: number
+  confidence_label: string
+  categories: RawCategoryRisk[]
+  contributors: RawRiskContributor[]
+  recommended_actions: RawRecommendedAction[]
+  previous_score: number | null
+  score_delta: number | null
+  trend_direction: string | null
+  explanation: string
+  triggered_rules: string[]
+  evaluated_at: string
+}
+
+export interface RawPlantRiskSummary {
+  generated_at: string
+  zones: RawRiskAssessment[]
+  highest_risk_zone_id: string | null
+  plant_wide_emergency_active: boolean
+}
