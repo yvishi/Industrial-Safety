@@ -1,16 +1,20 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, Users } from 'lucide-react'
+import { ArrowRight, TriangleAlert, Users } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { StatusPill } from '@/components/ui/StatusPill'
 import { buttonVariants } from '@/components/ui/Button'
 import { buildZonePath } from '@/app/routes'
+import { usePolling } from '@/hooks/usePolling'
 import type { ZoneState } from '../types/state'
 import type { Permit } from '../types/permit'
 import type { RiskAssessment } from '../types/risk'
+import { fetchZoneRecommendations } from '../services/recommendationService'
 import { ZoneTypeIcon, ZONE_TYPE_LABEL } from './ZoneTypeIcon'
 import { MetricRow } from './MetricRow'
 import { summarizeZoneHealth } from '../utils/zoneHealth'
 import { RISK_LEVEL_BORDER_CLASS, RISK_LEVEL_LABEL, riskLevelStatus } from '../utils/riskDisplay'
+
+const POLL_INTERVAL_MS = 5000
 
 export interface ZoneSummaryModalProps {
   zoneState: ZoneState | undefined
@@ -23,9 +27,16 @@ export interface ZoneSummaryModalProps {
 }
 
 export function ZoneSummaryModal({ zoneState, permits, riskAssessment, isOpen, onClose }: ZoneSummaryModalProps) {
+  const { data: recommendations } = usePolling(
+    () => (isOpen && zoneState ? fetchZoneRecommendations(zoneState.zone.id) : Promise.resolve([])),
+    POLL_INTERVAL_MS,
+  )
+
   if (!zoneState) return null
 
   const { zone, workers, equipment, sensors } = zoneState
+  const activeRecommendationCount = recommendations?.length ?? 0
+  const criticalRecommendationCount = recommendations?.filter((r) => r.priority === 'critical').length ?? 0
   const { equipmentSummary, permitsSummary, sensorRows, isHealthy } = summarizeZoneHealth({
     equipment,
     permits,
@@ -122,6 +133,17 @@ export function ZoneSummaryModal({ zoneState, permits, riskAssessment, isOpen, o
             )}
             <span className="text-xs text-text-muted">
               Confidence: {riskAssessment.confidenceLabel} · {riskAssessment.engineVersion}
+            </span>
+          </div>
+        )}
+
+        {activeRecommendationCount > 0 && (
+          <div className="flex items-center gap-2 rounded-lg bg-danger-subtle px-3 py-2 text-xs text-danger">
+            <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>
+              {activeRecommendationCount} active {activeRecommendationCount === 1 ? 'recommendation' : 'recommendations'}
+              {criticalRecommendationCount > 0 &&
+                ` (${criticalRecommendationCount} critical)`}
             </span>
           </div>
         )}

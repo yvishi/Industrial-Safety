@@ -27,6 +27,8 @@ class EventType(str, Enum):
     MAINTENANCE_LOGGED = "maintenance_logged"
     EMERGENCY_SHUTDOWN_ACTIVATED = "emergency_shutdown_activated"
     EMERGENCY_SHUTDOWN_CLEARED = "emergency_shutdown_cleared"
+    RECOMMENDATION_ACKNOWLEDGED = "recommendation_acknowledged"
+    RECOMMENDATION_RESOLVED = "recommendation_resolved"
     GENERAL = "general"
 
 
@@ -35,6 +37,7 @@ class EventBase(BaseModel):
     equipment_id: UUID | None = None
     permit_id: UUID | None = None
     recorded_by_id: UUID | None = None
+    recommendation_id: UUID | None = None
     event_type: EventType
     title: str
     description: str | None = None
@@ -50,6 +53,7 @@ class EventUpdate(BaseModel):
     equipment_id: UUID | None = None
     permit_id: UUID | None = None
     recorded_by_id: UUID | None = None
+    recommendation_id: UUID | None = None
     event_type: EventType | None = None
     title: str | None = None
     description: str | None = None

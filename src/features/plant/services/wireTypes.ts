@@ -159,3 +159,31 @@ export interface RawPlantRiskSummary {
   highest_risk_zone_id: string | null
   plant_wide_emergency_active: boolean
 }
+
+export interface RawRecommendation {
+  id: string
+  zone_id: string
+  zone_name: string
+  template_id: string
+  category: string
+  priority: string
+  state: string
+  title: string
+  action_text: string
+  expected_outcomes: string[]
+  rationale: string
+  source_rule_ids: string[]
+  target_entity: RawRiskEntityRef
+  engine_version: string
+  first_generated_at: string
+  last_seen_at: string
+  acknowledged_at: string | null
+  resolved_at: string | null
+}
+
+export interface RawPlantRecommendationSummary {
+  generated_at: string
+  top_recommendations: RawRecommendation[]
+  counts_by_priority: Record<string, number>
+  plant_wide_emergency_active: boolean
+}

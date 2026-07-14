@@ -4,9 +4,11 @@ import { Badge } from '@/components/ui/Badge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { usePolling } from '@/hooks/usePolling'
+import { ActionQueue } from '../components/ActionQueue'
 import { ZoneGrid } from '../components/ZoneGrid'
 import { LiveIndicator } from '../components/LiveIndicator'
 import { fetchPlantState } from '../services/plantService'
+import { fetchPlantRecommendations } from '../services/recommendationService'
 import { fetchPlantRisk } from '../services/riskService'
 
 const POLL_INTERVAL_MS = 5000
@@ -27,6 +29,7 @@ export function PlantOverviewPage() {
   // rather than blocking the whole page (unlike the primary /state poll above).
   const { data: riskSummary } = usePolling(fetchPlantRisk, POLL_INTERVAL_MS)
   const riskByZoneId = new Map(riskSummary?.zones.map((assessment) => [assessment.zoneId, assessment]))
+  const { data: recommendationSummary } = usePolling(fetchPlantRecommendations, POLL_INTERVAL_MS)
 
   if (isLoading) {
     return (
@@ -64,6 +67,7 @@ export function PlantOverviewPage() {
           </div>
         }
       />
+      <ActionQueue summary={recommendationSummary} />
       <ZoneGrid zones={state.zones} activePermits={state.activePermits} riskByZoneId={riskByZoneId} />
     </div>
   )

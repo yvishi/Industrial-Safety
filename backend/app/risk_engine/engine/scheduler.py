@@ -6,6 +6,12 @@ assessment down with it; (2) persistence is change-gated (see RiskService), so r
 every 5s simulation tick would mostly be wasted no-op work. Reads/writes the database
 independently on its own interval, matching this codebase's established pattern of the DB as
 the single source of truth between decoupled subsystems.
+
+Also reconciles the Recommendation Engine on the same tick, right after each zone's
+RiskAssessment is computed — unlike the risk-vs-simulation split above, there is no analogous
+reason to decouple recommendations onto their own poller: they are architecturally downstream
+of RiskAssessment by design (never read raw facts), so reconciling inline avoids a second
+background task and avoids ever reconciling against a stale assessment.
 """
 
 import asyncio
@@ -13,10 +19,14 @@ import logging
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from app.repositories.event import EventRepository
+from app.repositories.recommendation import RecommendationRepository
 from app.repositories.risk import RiskRepository
+from app.repositories.zone import ZoneRepository
 from app.risk_engine.config.defaults import DEFAULT_RISK_CONFIG
 from app.risk_engine.config.schema import RiskEngineConfig
 from app.risk_engine.facts_builder import ZoneFactsBuilder
+from app.services.recommendation import RecommendationService
 from app.services.risk import RiskService
 
 logger = logging.getLogger(__name__)
@@ -59,12 +69,17 @@ class RiskScheduler:
             async with self.session_factory() as session:
                 builder = ZoneFactsBuilder(session)
                 facts_by_zone = await builder.build_for_plant(self.config)
-                service = RiskService(RiskRepository(session), builder, self.config)
+                risk_service = RiskService(RiskRepository(session), builder, self.config)
+                recommendation_service = RecommendationService(
+                    RecommendationRepository(session), ZoneRepository(session), EventRepository(session)
+                )
 
                 persisted = 0
                 for facts in facts_by_zone.values():
-                    if await service.evaluate_and_persist_if_changed(facts) is not None:
+                    assessment, snapshot = await risk_service.evaluate(facts)
+                    if snapshot is not None:
                         persisted += 1
+                    await recommendation_service.reconcile(assessment)
 
                 if persisted:
                     logger.info("Risk pass: %d zone snapshot(s) persisted", persisted)

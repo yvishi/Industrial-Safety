@@ -1,5 +1,5 @@
 import { useParams, useLocation, Link, Navigate } from 'react-router-dom'
-import { ArrowLeft, ScanEye, Sparkles, WifiOff } from 'lucide-react'
+import { ArrowLeft, ScanEye, WifiOff } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Badge } from '@/components/ui/Badge'
 import { Section } from '@/components/ui/Section'
@@ -13,6 +13,7 @@ import { CapabilityPlaceholder } from '../components/CapabilityPlaceholder'
 import { LiveIndicator } from '../components/LiveIndicator'
 import { PersonnelList } from '../components/PersonnelList'
 import { EquipmentList } from '../components/EquipmentList'
+import { RecommendationsPanel } from '../components/RecommendationsPanel'
 import { SensorList } from '../components/SensorList'
 import { PermitList } from '../components/PermitList'
 import { ActivityList } from '../components/ActivityList'
@@ -25,11 +26,6 @@ const UPCOMING_CAPABILITIES = [
     icon: ScanEye,
     title: 'Computer Vision',
     description: 'Camera-based hazard and PPE detection for this process area. Not yet connected.',
-  },
-  {
-    icon: Sparkles,
-    title: 'AI Recommendations',
-    description: 'Model-generated safety guidance for this process area. Not yet connected.',
   },
 ]
 
@@ -128,6 +124,10 @@ export function ZoneDetailPage() {
           <SensorList sensors={sensors} />
         </Section>
       </div>
+
+      <Section title="Recommended Actions" description="What operators should do right now, and why.">
+        <RecommendationsPanel zoneId={zone.id} />
+      </Section>
 
       <Section title="Recent Activity" description="Latest logged events for this zone.">
         <ActivityList events={events ?? []} />

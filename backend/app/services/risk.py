@@ -90,17 +90,20 @@ class RiskService:
             plant_wide_emergency_active=any(a.is_emergency_override for a in assessments),
         )
 
-    async def evaluate_and_persist_if_changed(self, facts: ZoneFacts) -> RiskSnapshot | None:
+    async def evaluate(self, facts: ZoneFacts) -> tuple[RiskAssessment, RiskSnapshot | None]:
         """Used by RiskScheduler. Computes the assessment, compares it against the last
         persisted snapshot for this zone, and only writes a new row on a meaningful change
-        (level changed, or score moved by more than SCORE_DELTA_PERSIST_THRESHOLD)."""
+        (level changed, or score moved by more than SCORE_DELTA_PERSIST_THRESHOLD). Returns the
+        assessment unconditionally (the Recommendation Engine reconciles against it every tick,
+        independent of whether this particular tick was persist-worthy) alongside the snapshot,
+        which is None on ticks that didn't warrant a new row."""
         previous = await self.repository.latest_for_zone(facts.zone_id)
         assessment = self._build_assessment(facts, previous.score if previous else None)
 
         if not self._should_persist(previous, assessment):
-            return None
+            return assessment, None
 
-        return await self.repository.create(
+        snapshot = await self.repository.create(
             {
                 "zone_id": facts.zone_id,
                 "score": assessment.score,
@@ -116,6 +119,11 @@ class RiskService:
                 "evaluated_at": assessment.evaluated_at,
             }
         )
+        return assessment, snapshot
+
+    async def evaluate_and_persist_if_changed(self, facts: ZoneFacts) -> RiskSnapshot | None:
+        _, snapshot = await self.evaluate(facts)
+        return snapshot
 
     async def history_for_zone(
         self,

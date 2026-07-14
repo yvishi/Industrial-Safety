@@ -8,6 +8,7 @@ from app.repositories.equipment import EquipmentRepository
 from app.repositories.event import EventRepository
 from app.repositories.permit import PermitRepository
 from app.repositories.plant import PlantRepository
+from app.repositories.recommendation import RecommendationRepository
 from app.repositories.risk import RiskRepository
 from app.repositories.sensor import SensorRepository
 from app.repositories.worker import WorkerRepository
@@ -17,6 +18,7 @@ from app.services.equipment import EquipmentService
 from app.services.event import EventService
 from app.services.permit import PermitService
 from app.services.plant import PlantService
+from app.services.recommendation import RecommendationService
 from app.services.risk import RiskService
 from app.services.sensor import SensorService
 from app.services.worker import WorkerService
@@ -55,3 +57,7 @@ def get_event_service(session: DbSession) -> EventService:
 
 def get_risk_service(session: DbSession) -> RiskService:
     return RiskService(RiskRepository(session), ZoneFactsBuilder(session))
+
+
+def get_recommendation_service(session: DbSession) -> RecommendationService:
+    return RecommendationService(RecommendationRepository(session), ZoneRepository(session), EventRepository(session))

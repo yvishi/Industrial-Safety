@@ -2,6 +2,7 @@ import type { Equipment, EquipmentStatus, EquipmentType } from '../types/equipme
 import type { PlantEvent } from '../types/event'
 import type { PlantProfile } from '../types/plant'
 import type { Permit, PermitStatus, PermitType } from '../types/permit'
+import type { PlantRecommendationSummary, Recommendation, RecommendationPriority, RecommendationState } from '../types/recommendation'
 import type {
   CategoryRisk,
   ConfidenceLevel,
@@ -23,7 +24,9 @@ import type {
   RawEvent,
   RawPermit,
   RawPlant,
+  RawPlantRecommendationSummary,
   RawPlantRiskSummary,
+  RawRecommendation,
   RawRecommendedAction,
   RawRiskAssessment,
   RawRiskContributor,
@@ -176,6 +179,38 @@ export function mapPlantRiskSummary(raw: RawPlantRiskSummary): PlantRiskSummary 
     generatedAt: raw.generated_at,
     zones: raw.zones.map(mapRiskAssessment),
     highestRiskZoneId: raw.highest_risk_zone_id,
+    plantWideEmergencyActive: raw.plant_wide_emergency_active,
+  }
+}
+
+export function mapRecommendation(raw: RawRecommendation): Recommendation {
+  return {
+    id: raw.id,
+    zoneId: raw.zone_id,
+    zoneName: raw.zone_name,
+    templateId: raw.template_id,
+    category: raw.category as RiskCategoryKey,
+    priority: raw.priority as RecommendationPriority,
+    state: raw.state as RecommendationState,
+    title: raw.title,
+    actionText: raw.action_text,
+    expectedOutcomes: raw.expected_outcomes,
+    rationale: raw.rationale,
+    sourceRuleIds: raw.source_rule_ids,
+    targetEntity: mapRiskEntityRef(raw.target_entity),
+    engineVersion: raw.engine_version,
+    firstGeneratedAt: raw.first_generated_at,
+    lastSeenAt: raw.last_seen_at,
+    acknowledgedAt: raw.acknowledged_at,
+    resolvedAt: raw.resolved_at,
+  }
+}
+
+export function mapPlantRecommendationSummary(raw: RawPlantRecommendationSummary): PlantRecommendationSummary {
+  return {
+    generatedAt: raw.generated_at,
+    topRecommendations: raw.top_recommendations.map(mapRecommendation),
+    countsByPriority: raw.counts_by_priority as PlantRecommendationSummary['countsByPriority'],
     plantWideEmergencyActive: raw.plant_wide_emergency_active,
   }
 }

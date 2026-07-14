@@ -10,10 +10,7 @@ export class ApiError extends Error {
   }
 }
 
-/** GET a JSON resource from the backend API. Throws ApiError on any non-2xx response. */
-export async function apiGet<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`)
-
+async function parseOrThrow<T>(path: string, response: Response): Promise<T> {
   if (!response.ok) {
     const body = await response.json().catch(() => null)
     const message =
@@ -23,4 +20,16 @@ export async function apiGet<T>(path: string): Promise<T> {
   }
 
   return response.json() as Promise<T>
+}
+
+/** GET a JSON resource from the backend API. Throws ApiError on any non-2xx response. */
+export async function apiGet<T>(path: string): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`)
+  return parseOrThrow<T>(path, response)
+}
+
+/** POST with no request body (state-transition actions). Throws ApiError on any non-2xx response. */
+export async function apiPost<T>(path: string): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, { method: 'POST' })
+  return parseOrThrow<T>(path, response)
 }

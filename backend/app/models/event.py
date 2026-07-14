@@ -10,6 +10,7 @@ from app.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 if TYPE_CHECKING:
     from app.models.equipment import Equipment
     from app.models.permit import Permit
+    from app.models.recommendation import Recommendation
     from app.models.worker import Worker
     from app.models.zone import Zone
 
@@ -31,6 +32,9 @@ class Event(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     recorded_by_id: Mapped[UUIDType | None] = mapped_column(
         ForeignKey("workers.id"), index=True, nullable=True
     )
+    recommendation_id: Mapped[UUIDType | None] = mapped_column(
+        ForeignKey("recommendations.id"), index=True, nullable=True
+    )
 
     event_type: Mapped[str] = mapped_column(String(50), index=True)
     title: Mapped[str] = mapped_column(String(200))
@@ -41,3 +45,4 @@ class Event(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     equipment: Mapped["Equipment | None"] = relationship(back_populates="events")
     permit: Mapped["Permit | None"] = relationship(back_populates="events")
     recorded_by: Mapped["Worker | None"] = relationship(back_populates="recorded_events")
+    recommendation: Mapped["Recommendation | None"] = relationship()
