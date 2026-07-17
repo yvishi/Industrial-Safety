@@ -234,3 +234,24 @@ async def test_manual_incident_is_not_touched_by_the_correlation_engine(
 async def test_get_unknown_incident_returns_404(client: AsyncClient) -> None:
     response = await client.get("/api/v1/incidents/00000000-0000-0000-0000-000000000000")
     assert response.status_code == 404
+
+
+async def test_incident_timeline_includes_the_events_that_triggered_it(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """Regression test: risk_level_increased and recommendation_created both fire one service
+    earlier in the tick than the Correlation Engine that opens the Incident, so neither event
+    could carry incident_id at the moment it was created. IncidentService must backfill both
+    once the incident exists, or the incident's own timeline (GET /events?incident_id=) would
+    silently omit the very events that explain why it opened."""
+    _, zone_id = await _create_plant_and_zone(client)
+    await client.patch(f"/api/v1/zones/{zone_id}", json={"emergency_shutdown_active": True})
+    await _reconcile(client, db_session, zone_id, {})
+
+    incident_id = (await client.get("/api/v1/incidents", params={"zone_id": zone_id})).json()["items"][0]["id"]
+    events = (await client.get("/api/v1/events", params={"incident_id": incident_id})).json()["items"]
+    event_types = {e["event_type"] for e in events}
+
+    assert "incident_opened" in event_types
+    assert "risk_level_increased" in event_types
+    assert "recommendation_created" in event_types

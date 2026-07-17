@@ -233,6 +233,14 @@ class IncidentService:
                 "corrective_actions": [],
             }
         )
+        # Retroactively attaches the specific risk-level-change event that triggered this
+        # incident — it was logged by RiskService a step earlier in this same tick, before
+        # this Incident existed for it to point to.
+        await self.event_repository.link_recent_unlinked(
+            assessment.zone_id,
+            [EventType.RISK_LEVEL_INCREASED.value, EventType.RISK_LEVEL_DECREASED.value],
+            incident.id,
+        )
         await self._link_recommendations(incident, active_recommendations)
         await self._emit_lifecycle_event(incident, EventType.INCIDENT_OPENED, f"Incident opened: {incident.title}")
         return incident
@@ -277,6 +285,9 @@ class IncidentService:
         if not unlinked_ids:
             return
         await self.recommendation_repository.link_to_incident(unlinked_ids, incident.id)
+        # The recommendation_created event for each of these fired one service earlier in the
+        # same tick, before this Incident existed — backfill it now that we know the link.
+        await self.event_repository.link_by_recommendation_ids(unlinked_ids, incident.id)
         for row in active_recommendations:
             if row.id in unlinked_ids:
                 row.incident_id = incident.id

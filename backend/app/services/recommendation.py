@@ -188,6 +188,7 @@ class RecommendationService:
                 {
                     "zone_id": row.zone_id,
                     "recommendation_id": row.id,
+                    "incident_id": row.incident_id,
                     "event_type": EventType.RECOMMENDATION_ACKNOWLEDGED.value,
                     "title": f"Recommendation acknowledged: {row.title}",
                     "description": None,
@@ -209,6 +210,7 @@ class RecommendationService:
             {
                 "zone_id": updated.zone_id,
                 "recommendation_id": updated.id,
+                "incident_id": updated.incident_id,
                 "event_type": EventType.RECOMMENDATION_RESOLVED.value,
                 "title": f"Recommendation resolved: {updated.title}",
                 "description": reason,
