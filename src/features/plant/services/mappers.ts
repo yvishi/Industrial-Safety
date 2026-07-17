@@ -1,5 +1,5 @@
 import type { Equipment, EquipmentStatus, EquipmentType } from '../types/equipment'
-import type { PlantEvent } from '../types/event'
+import type { EventSeverity, PlantEvent } from '../types/event'
 import type { PlantProfile } from '../types/plant'
 import type { Permit, PermitStatus, PermitType } from '../types/permit'
 import type { PlantRecommendationSummary, Recommendation, RecommendationPriority, RecommendationState } from '../types/recommendation'
@@ -120,6 +120,11 @@ export function mapEvent(raw: RawEvent): PlantEvent {
     description: raw.description,
     occurredAt: raw.occurred_at,
     zoneId: raw.zone_id,
+    riskSnapshotId: raw.risk_snapshot_id,
+    incidentId: raw.incident_id,
+    actorType: raw.actor_type as PlantEvent['actorType'],
+    actorId: raw.actor_id,
+    severity: raw.severity as EventSeverity,
   }
 }
 
@@ -188,6 +193,7 @@ export function mapRecommendation(raw: RawRecommendation): Recommendation {
     id: raw.id,
     zoneId: raw.zone_id,
     zoneName: raw.zone_name,
+    incidentId: raw.incident_id,
     templateId: raw.template_id,
     category: raw.category as RiskCategoryKey,
     priority: raw.priority as RecommendationPriority,

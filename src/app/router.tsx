@@ -2,13 +2,13 @@ import { createBrowserRouter, Outlet } from 'react-router-dom'
 import { AppLayout } from '@/layouts/AppLayout'
 import {
   DashboardPage,
-  IncidentsPage,
   TimelinePage,
   ReportsPage,
   SettingsPage,
   NotFoundPage,
 } from '@/pages'
 import { PlantOverviewPage, ZoneDetailPage } from '@/features/plant'
+import { IncidentsListPage, IncidentDetailPage } from '@/features/incidents'
 import { ROUTES } from './routes'
 
 export const router = createBrowserRouter([
@@ -31,7 +31,21 @@ export const router = createBrowserRouter([
           },
         ],
       },
-      { path: ROUTES.incidents, element: <IncidentsPage />, handle: { crumb: () => 'Incidents' } },
+      {
+        path: ROUTES.incidents,
+        element: <Outlet />,
+        handle: { crumb: () => 'Incidents' },
+        children: [
+          { index: true, element: <IncidentsListPage /> },
+          {
+            path: ':incidentId',
+            element: <IncidentDetailPage />,
+            // Incident data loads async — IncidentDetailPage overrides this via
+            // useBreadcrumbLabel once the incident's title is known.
+            handle: { crumb: () => 'Incident' },
+          },
+        ],
+      },
       { path: ROUTES.timeline, element: <TimelinePage />, handle: { crumb: () => 'Timeline' } },
       { path: ROUTES.reports, element: <ReportsPage />, handle: { crumb: () => 'Reports' } },
       { path: ROUTES.settings, element: <SettingsPage />, handle: { crumb: () => 'Settings' } },

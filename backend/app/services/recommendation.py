@@ -262,6 +262,7 @@ class RecommendationService:
             updated_at=row.updated_at,
             zone_id=row.zone_id,
             zone_name=zone_name,
+            incident_id=row.incident_id,
             template_id=row.template_id,
             category=row.category,
             priority=RecommendationPriority(row.priority),

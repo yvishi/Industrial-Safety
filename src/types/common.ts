@@ -11,3 +11,12 @@ export interface WithChildren {
 }
 
 export type Status = 'operational' | 'warning' | 'critical' | 'offline' | 'info'
+
+/** Generic paginated response shape — camelCase counterpart of each feature's own
+ * RawPage<T> wire type (see e.g. src/features/plant/services/wireTypes.ts). */
+export interface Page<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+}

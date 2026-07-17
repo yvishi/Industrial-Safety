@@ -11,3 +11,7 @@ export const ROUTES = {
 export function buildZonePath(zoneId: string): string {
   return `${ROUTES.plant}/zones/${zoneId}`
 }
+
+export function buildIncidentPath(incidentId: string): string {
+  return `${ROUTES.incidents}/${incidentId}`
+}

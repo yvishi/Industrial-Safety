@@ -3,9 +3,12 @@ import type { PlantRecommendationSummary, Recommendation } from '../types/recomm
 import { mapPlantRecommendationSummary, mapRecommendation } from './mappers'
 import type { RawPlantRecommendationSummary, RawRecommendation } from './wireTypes'
 
-/** Active recommendations for one zone, priority-sorted. */
-export async function fetchZoneRecommendations(zoneId: string): Promise<Recommendation[]> {
-  const raw = await apiGet<RawRecommendation[]>(`/api/v1/recommendations/zones/${zoneId}`)
+/** Recommendations for one zone, priority-sorted — active only by default; pass
+ * `includeResolved` to also see ones that have already cleared (e.g. for a closed incident's
+ * own history, which can legitimately reference a recommendation that resolved before it did). */
+export async function fetchZoneRecommendations(zoneId: string, includeResolved = false): Promise<Recommendation[]> {
+  const query = includeResolved ? '?include_resolved=true' : ''
+  const raw = await apiGet<RawRecommendation[]>(`/api/v1/recommendations/zones/${zoneId}${query}`)
   return raw.map(mapRecommendation)
 }
 

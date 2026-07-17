@@ -79,6 +79,11 @@ export interface RawEvent {
   description: string | null
   occurred_at: string
   zone_id: string | null
+  risk_snapshot_id: string | null
+  incident_id: string | null
+  actor_type: string
+  actor_id: string | null
+  severity: string
 }
 
 export interface RawZoneState {
@@ -164,6 +169,7 @@ export interface RawRecommendation {
   id: string
   zone_id: string
   zone_name: string
+  incident_id: string | null
   template_id: string
   category: string
   priority: string

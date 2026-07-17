@@ -1,5 +1,4 @@
 export * from './DashboardPage'
-export * from './IncidentsPage'
 export * from './TimelinePage'
 export * from './ReportsPage'
 export * from './SettingsPage'

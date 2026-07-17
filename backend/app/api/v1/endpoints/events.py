@@ -19,6 +19,7 @@ async def list_events(
     zone_id: Annotated[UUID | None, Query()] = None,
     equipment_id: Annotated[UUID | None, Query()] = None,
     permit_id: Annotated[UUID | None, Query()] = None,
+    incident_id: Annotated[UUID | None, Query()] = None,
     event_type: Annotated[EventType | None, Query()] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=200)] = 50,
@@ -29,6 +30,7 @@ async def list_events(
         zone_id=zone_id,
         equipment_id=equipment_id,
         permit_id=permit_id,
+        incident_id=incident_id,
         event_type=event_type,
     )
     return Page(items=items, total=total, page=page, page_size=page_size)

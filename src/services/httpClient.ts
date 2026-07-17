@@ -28,8 +28,13 @@ export async function apiGet<T>(path: string): Promise<T> {
   return parseOrThrow<T>(path, response)
 }
 
-/** POST with no request body (state-transition actions). Throws ApiError on any non-2xx response. */
-export async function apiPost<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, { method: 'POST' })
+/** POST a JSON body (or none, for state-transition actions). Throws ApiError on any non-2xx response. */
+export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    ...(body !== undefined
+      ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      : {}),
+  })
   return parseOrThrow<T>(path, response)
 }

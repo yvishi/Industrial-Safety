@@ -29,6 +29,7 @@ class RecommendationState(str, Enum):
 class RecommendationRead(TimestampedRead):
     zone_id: UUID
     zone_name: str
+    incident_id: UUID | None = None
     template_id: str
     category: RiskCategory
     priority: RecommendationPriority

@@ -11,6 +11,7 @@ export interface Recommendation {
   id: string
   zoneId: string
   zoneName: string
+  incidentId: string | null
   templateId: string
   category: RiskCategoryKey
   priority: RecommendationPriority
