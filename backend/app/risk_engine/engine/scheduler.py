@@ -7,25 +7,32 @@ every 5s simulation tick would mostly be wasted no-op work. Reads/writes the dat
 independently on its own interval, matching this codebase's established pattern of the DB as
 the single source of truth between decoupled subsystems.
 
-Also reconciles the Recommendation Engine on the same tick, right after each zone's
-RiskAssessment is computed — unlike the risk-vs-simulation split above, there is no analogous
-reason to decouple recommendations onto their own poller: they are architecturally downstream
-of RiskAssessment by design (never read raw facts), so reconciling inline avoids a second
-background task and avoids ever reconciling against a stale assessment.
+Also reconciles the Recommendation Engine and the Correlation Engine (Incident lifecycle) on
+the same tick, right after each zone's RiskAssessment is computed — unlike the risk-vs-simulation
+split above, there is no analogous reason to decouple either of them onto their own poller: both
+are architecturally downstream of RiskAssessment by design, so reconciling inline avoids extra
+background tasks and avoids ever reconciling against a stale assessment. Ordering within the
+per-zone loop matters: Incident correlation reads the Recommendation Engine's just-reconciled
+active set for that same zone, so it must run after recommendation_service.reconcile() returns,
+not as a separate pass over facts_by_zone.
 """
 
 import asyncio
 import logging
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from app.correlation_engine.decide import ThresholdState
 from app.repositories.event import EventRepository
+from app.repositories.incident import IncidentRepository
 from app.repositories.recommendation import RecommendationRepository
 from app.repositories.risk import RiskRepository
 from app.repositories.zone import ZoneRepository
 from app.risk_engine.config.defaults import DEFAULT_RISK_CONFIG
 from app.risk_engine.config.schema import RiskEngineConfig
 from app.risk_engine.facts_builder import ZoneFactsBuilder
+from app.services.incident import IncidentService
 from app.services.recommendation import RecommendationService
 from app.services.risk import RiskService
 
@@ -44,6 +51,11 @@ class RiskScheduler:
         self.interval_seconds = interval_seconds
         self.config = config
         self._running = False
+        # Correlation Engine debounce counters, one per zone — owned here (not by
+        # IncidentService, which is reconstructed fresh every tick) because this scheduler is
+        # the one object that genuinely persists across ticks, the same reason it already owns
+        # `_running`. See IncidentService.reconcile()'s docstring.
+        self._incident_threshold_states: dict[UUID, ThresholdState] = {}
 
     async def run(self) -> None:
         logger.info("Risk scheduler started (evaluating every %.1fs)", self.interval_seconds)
@@ -69,9 +81,18 @@ class RiskScheduler:
             async with self.session_factory() as session:
                 builder = ZoneFactsBuilder(session)
                 facts_by_zone = await builder.build_for_plant(self.config)
-                risk_service = RiskService(RiskRepository(session), builder, self.config)
+                risk_service = RiskService(RiskRepository(session), builder, EventRepository(session), self.config)
                 recommendation_service = RecommendationService(
-                    RecommendationRepository(session), ZoneRepository(session), EventRepository(session)
+                    RecommendationRepository(session),
+                    ZoneRepository(session),
+                    EventRepository(session),
+                    RiskRepository(session),
+                )
+                incident_service = IncidentService(
+                    IncidentRepository(session),
+                    RecommendationRepository(session),
+                    EventRepository(session),
+                    ZoneRepository(session),
                 )
 
                 persisted = 0
@@ -79,7 +100,10 @@ class RiskScheduler:
                     assessment, snapshot = await risk_service.evaluate(facts)
                     if snapshot is not None:
                         persisted += 1
-                    await recommendation_service.reconcile(assessment)
+                    active_recommendations = await recommendation_service.reconcile(assessment)
+                    await incident_service.reconcile(
+                        assessment, facts, active_recommendations, self._incident_threshold_states
+                    )
 
                 if persisted:
                     logger.info("Risk pass: %d zone snapshot(s) persisted", persisted)

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.session import get_db
 from app.repositories.equipment import EquipmentRepository
 from app.repositories.event import EventRepository
+from app.repositories.incident import IncidentRepository
 from app.repositories.permit import PermitRepository
 from app.repositories.plant import PlantRepository
 from app.repositories.recommendation import RecommendationRepository
@@ -16,6 +17,7 @@ from app.repositories.zone import ZoneRepository
 from app.risk_engine.facts_builder import ZoneFactsBuilder
 from app.services.equipment import EquipmentService
 from app.services.event import EventService
+from app.services.incident import IncidentService
 from app.services.permit import PermitService
 from app.services.plant import PlantService
 from app.services.recommendation import RecommendationService
@@ -56,8 +58,19 @@ def get_event_service(session: DbSession) -> EventService:
 
 
 def get_risk_service(session: DbSession) -> RiskService:
-    return RiskService(RiskRepository(session), ZoneFactsBuilder(session))
+    return RiskService(RiskRepository(session), ZoneFactsBuilder(session), EventRepository(session))
 
 
 def get_recommendation_service(session: DbSession) -> RecommendationService:
-    return RecommendationService(RecommendationRepository(session), ZoneRepository(session), EventRepository(session))
+    return RecommendationService(
+        RecommendationRepository(session), ZoneRepository(session), EventRepository(session), RiskRepository(session)
+    )
+
+
+def get_incident_service(session: DbSession) -> IncidentService:
+    return IncidentService(
+        IncidentRepository(session),
+        RecommendationRepository(session),
+        EventRepository(session),
+        ZoneRepository(session),
+    )

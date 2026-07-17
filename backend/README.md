@@ -124,8 +124,13 @@ uv run pytest
   Engine still owns its own judgment; these bands are inputs, not risk scores.
 - `Sensor` is a registry/catalog record, not a telemetry store. Live readings are a deliberately
   separate concern (`sensor_readings`, pruned to a retention window).
-- `Event` is a generic activity log. The future Incident Timeline is a filtered/sorted view over
-  this table, not a new one.
+- `Event` is a generic activity log. The Operational Timeline (see
+  `operational-timeline-architecture.md`) is a filtered/sorted read-model composed over this
+  table plus `RiskSnapshot`/`Recommendation`/`Incident` — it owns no table of its own. `Incident`
+  itself *is* a new, separate table (`app/models/incident.py`): a stateful, correlated episode
+  the Correlation Engine (`app/correlation_engine/`) opens/tracks/resolves, distinct from the
+  plain per-row `Event` log — see that architecture doc for why a bounded, ownable lifecycle
+  entity turned out to need its own table rather than being a view.
 - Zone/equipment/sensor identity flows from `app/plant_types/refinery.py` through the seed into
   the DB; the frontend renders whatever the API returns, so plant-type changes need matching
   updates only to the frontend's type unions and icon/label maps.

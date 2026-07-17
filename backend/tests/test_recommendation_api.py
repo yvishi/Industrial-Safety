@@ -33,9 +33,12 @@ async def _reconcile(client: AsyncClient, db_session: AsyncSession, zone_id: str
     """Drives one reconciliation pass directly, mirroring how RiskScheduler.run_once() calls
     it — the scheduler itself doesn't run in tests (ASGITransport skips the app lifespan)."""
     builder = ZoneFactsBuilder(db_session)
-    risk_service = RiskService(RiskRepository(db_session), builder, DEFAULT_RISK_CONFIG)
+    risk_service = RiskService(RiskRepository(db_session), builder, EventRepository(db_session), DEFAULT_RISK_CONFIG)
     recommendation_service = RecommendationService(
-        RecommendationRepository(db_session), ZoneRepository(db_session), EventRepository(db_session)
+        RecommendationRepository(db_session),
+        ZoneRepository(db_session),
+        EventRepository(db_session),
+        RiskRepository(db_session),
     )
     facts = await builder.build_for_zone(UUID(zone_id), DEFAULT_RISK_CONFIG)
     assessment, _ = await risk_service.evaluate(facts)

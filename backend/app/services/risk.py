@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from app.models.risk_snapshot import RiskSnapshot
+from app.repositories.event import EventRepository
 from app.repositories.risk import RiskRepository
 from app.risk_engine import ENGINE_VERSION
 from app.risk_engine.config.defaults import DEFAULT_RISK_CONFIG
@@ -15,6 +16,7 @@ from app.risk_engine.facts import ZoneFacts
 from app.risk_engine.facts_builder import ZoneFactsBuilder
 from app.risk_engine.rules import ALL_RULES
 from app.risk_engine.rules.base import RuleResult
+from app.schemas.event import EventType
 from app.schemas.risk import (
     CategoryRisk,
     EntityRefRead,
@@ -29,6 +31,8 @@ from app.schemas.risk import (
 TRIGGER_SOURCE_SCHEDULER = "scheduler_tick"
 # A snapshot is only persisted when the level changes or the score moves by more than this.
 SCORE_DELTA_PERSIST_THRESHOLD = 10
+
+_RISK_LEVEL_RANK: dict[str, int] = {level.value: i for i, level in enumerate(RiskLevel)}
 
 
 def build_rule_catalog(config: RiskEngineConfig = DEFAULT_RISK_CONFIG) -> list[RuleCatalogEntry]:
@@ -63,10 +67,12 @@ class RiskService:
         self,
         repository: RiskRepository,
         facts_builder: ZoneFactsBuilder,
+        event_repository: EventRepository,
         config: RiskEngineConfig = DEFAULT_RISK_CONFIG,
     ) -> None:
         self.repository = repository
         self.facts_builder = facts_builder
+        self.event_repository = event_repository
         self.config = config
 
     async def assess_zone(self, zone_id: UUID) -> RiskAssessment:
@@ -119,7 +125,48 @@ class RiskService:
                 "evaluated_at": assessment.evaluated_at,
             }
         )
+        if previous is None:
+            # A zone's very first snapshot is always persisted (per _should_persist), but with
+            # no prior row there's no "transition" to compare against. If it's already elevated,
+            # that's still a fact the Operational Timeline needs — a zone seeded already
+            # critical must not read as silently normal for having no risk_level event at all.
+            if snapshot.level != RiskLevel.NORMAL.value:
+                await self._emit_initial_level_event(snapshot, facts.zone_name)
+        elif previous.level != snapshot.level:
+            await self._emit_level_change_event(previous, snapshot, facts.zone_name)
         return assessment, snapshot
+
+    async def _emit_initial_level_event(self, snapshot: RiskSnapshot, zone_name: str) -> None:
+        await self.event_repository.create(
+            {
+                "zone_id": snapshot.zone_id,
+                "risk_snapshot_id": snapshot.id,
+                "event_type": EventType.RISK_LEVEL_INCREASED.value,
+                "title": f"{zone_name} risk level observed at {snapshot.level.upper()} (first assessment)",
+                "description": None,
+                "occurred_at": snapshot.evaluated_at,
+            }
+        )
+
+    async def _emit_level_change_event(
+        self, previous: RiskSnapshot, snapshot: RiskSnapshot, zone_name: str
+    ) -> None:
+        """Only fires on an actual level transition (never on a same-level score wobble, even
+        though that can also trigger persistence) — matches the Operational Timeline's noise
+        principle of logging state transitions, not every score movement."""
+        increased = _RISK_LEVEL_RANK[snapshot.level] > _RISK_LEVEL_RANK[previous.level]
+        event_type = EventType.RISK_LEVEL_INCREASED if increased else EventType.RISK_LEVEL_DECREASED
+        direction = "increased" if increased else "decreased"
+        await self.event_repository.create(
+            {
+                "zone_id": snapshot.zone_id,
+                "risk_snapshot_id": snapshot.id,
+                "event_type": event_type.value,
+                "title": f"{zone_name} risk level {direction}: {previous.level.upper()} → {snapshot.level.upper()}",
+                "description": None,
+                "occurred_at": snapshot.evaluated_at,
+            }
+        )
 
     async def evaluate_and_persist_if_changed(self, facts: ZoneFacts) -> RiskSnapshot | None:
         _, snapshot = await self.evaluate(facts)

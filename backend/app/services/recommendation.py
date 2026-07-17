@@ -8,6 +8,7 @@ from app.recommendation_engine.generator import RecommendationCandidate, generat
 from app.recommendation_engine.templates import RULE_TEMPLATE_MAP, TEMPLATES
 from app.repositories.event import EventRepository
 from app.repositories.recommendation import RecommendationRepository
+from app.repositories.risk import RiskRepository
 from app.repositories.zone import ZoneRepository
 from app.schemas.event import EventType
 from app.schemas.recommendation import (
@@ -60,18 +61,22 @@ class RecommendationService:
         repository: RecommendationRepository,
         zone_repository: ZoneRepository,
         event_repository: EventRepository,
+        risk_repository: RiskRepository,
     ) -> None:
         self.repository = repository
         self.zone_repository = zone_repository
         self.event_repository = event_repository
+        self.risk_repository = risk_repository
 
-    async def reconcile(self, assessment: RiskAssessment) -> None:
+    async def reconcile(self, assessment: RiskAssessment) -> list[Recommendation]:
         """Called once per zone on every risk-evaluation tick (see RiskScheduler). Diffs freshly
         generated candidates against this zone's currently-open rows, keyed by a stable
         identity (zone_id + template_id): new candidates are inserted as NEW, still-matching
         ones are touched in place (last_seen_at/priority/rationale/target), and open rows with
         no matching candidate this cycle auto-resolve, because the condition that produced them
-        no longer holds."""
+        no longer holds. Returns the post-reconcile active set (created + touched rows, in no
+        particular order) so the Correlation Engine can read it in the same tick without a
+        redundant re-query — see IncidentService.reconcile."""
         now = datetime.now(timezone.utc)
         candidates = generate_candidates(assessment)
         candidates_by_key = {f"{assessment.zone_id}:{c.template_id}": c for c in candidates}
@@ -79,14 +84,25 @@ class RecommendationService:
         open_rows = await self.repository.active_for_zone(assessment.zone_id)
         open_by_key = {row.identity_key: row for row in open_rows}
 
+        # "Nearest known" snapshot for this zone, not necessarily persisted this exact tick —
+        # CRE only persists on meaningful change, so a recommendation created on a non-persisting
+        # tick still gets a real (if slightly earlier) frozen assessment to point back to.
+        latest_snapshot = await self.risk_repository.latest_for_zone(assessment.zone_id)
+        triggering_snapshot_id = latest_snapshot.id if latest_snapshot is not None else None
+
+        active: list[Recommendation] = []
         for identity_key, candidate in candidates_by_key.items():
             existing = open_by_key.get(identity_key)
             if existing is None:
-                await self.repository.create(
-                    self._candidate_to_values(assessment.zone_id, candidate, identity_key, now)
+                created = await self.repository.create(
+                    self._candidate_to_values(
+                        assessment.zone_id, candidate, identity_key, now, triggering_snapshot_id
+                    )
                 )
+                await self._emit_created_event(created)
+                active.append(created)
             else:
-                await self.repository.update(
+                updated = await self.repository.update(
                     existing,
                     {
                         "priority": candidate.priority,
@@ -96,10 +112,26 @@ class RecommendationService:
                         "last_seen_at": now,
                     },
                 )
+                active.append(updated)
 
         for identity_key, row in open_by_key.items():
             if identity_key not in candidates_by_key:
                 await self._resolve(row, reason="Underlying condition cleared.")
+
+        return active
+
+    async def _emit_created_event(self, row: Recommendation) -> None:
+        await self.event_repository.create(
+            {
+                "zone_id": row.zone_id,
+                "recommendation_id": row.id,
+                "risk_snapshot_id": row.triggering_snapshot_id,
+                "event_type": EventType.RECOMMENDATION_CREATED.value,
+                "title": f"Recommendation created: {row.title}",
+                "description": None,
+                "occurred_at": row.first_generated_at,
+            }
+        )
 
     async def get_zone_recommendations(
         self, zone_id: UUID, *, include_resolved: bool = False
@@ -196,10 +228,16 @@ class RecommendationService:
         return zone.name if zone is not None else ""
 
     def _candidate_to_values(
-        self, zone_id: UUID, candidate: RecommendationCandidate, identity_key: str, now: datetime
+        self,
+        zone_id: UUID,
+        candidate: RecommendationCandidate,
+        identity_key: str,
+        now: datetime,
+        triggering_snapshot_id: UUID | None,
     ) -> dict:
         return {
             "zone_id": zone_id,
+            "triggering_snapshot_id": triggering_snapshot_id,
             "identity_key": identity_key,
             "template_id": candidate.template_id,
             "category": candidate.category.value,

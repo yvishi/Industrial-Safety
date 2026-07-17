@@ -42,4 +42,6 @@ class Worker(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     approved_permits: Mapped[list["Permit"]] = relationship(
         back_populates="approved_by", foreign_keys="Permit.approved_by_id"
     )
-    recorded_events: Mapped[list["Event"]] = relationship(back_populates="recorded_by")
+    recorded_events: Mapped[list["Event"]] = relationship(
+        back_populates="recorded_by", foreign_keys="Event.recorded_by_id"
+    )

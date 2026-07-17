@@ -3,6 +3,7 @@
 from app.database.base import Base
 from app.models.equipment import Equipment
 from app.models.event import Event
+from app.models.incident import Incident
 from app.models.permit import Permit
 from app.models.plant import Plant
 from app.models.recommendation import Recommendation
@@ -15,6 +16,7 @@ __all__ = [
     "Base",
     "Equipment",
     "Event",
+    "Incident",
     "Permit",
     "Plant",
     "Recommendation",

@@ -9,6 +9,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.incident import Incident
+    from app.models.risk_snapshot import RiskSnapshot
     from app.models.zone import Zone
 
 # Real JSONB on Postgres; falls back to JSON (TEXT-backed) on SQLite for the in-memory test
@@ -39,6 +41,17 @@ class Recommendation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "recommendations"
 
     zone_id: Mapped[UUIDType] = mapped_column(ForeignKey("zones.id", ondelete="CASCADE"), index=True)
+    # Explicit causal edges (architecture Rev. 2, §R2.4) — which frozen assessment produced
+    # this recommendation, and which Incident (if any) has since correlated it. Both nullable:
+    # triggering_snapshot_id is "nearest known" since CRE only persists a snapshot on
+    # meaningful change, not every tick; incident_id is unset until/unless Correlation Engine
+    # attaches this recommendation to an open incident.
+    triggering_snapshot_id: Mapped[UUIDType | None] = mapped_column(
+        ForeignKey("risk_snapshots.id"), index=True, nullable=True
+    )
+    incident_id: Mapped[UUIDType | None] = mapped_column(
+        ForeignKey("incidents.id"), index=True, nullable=True
+    )
     identity_key: Mapped[str] = mapped_column(String(150), index=True)
     template_id: Mapped[str] = mapped_column(String(60), index=True)
     category: Mapped[str] = mapped_column(String(30), index=True)
@@ -64,6 +77,8 @@ class Recommendation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     zone: Mapped["Zone"] = relationship()
+    triggering_snapshot: Mapped["RiskSnapshot | None"] = relationship()
+    incident: Mapped["Incident | None"] = relationship()
 
     __table_args__ = (
         Index(

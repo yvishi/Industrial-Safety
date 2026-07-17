@@ -1,6 +1,7 @@
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.repositories.event import EventRepository
 from app.repositories.risk import RiskRepository
 from app.risk_engine.config.defaults import DEFAULT_RISK_CONFIG
 from app.risk_engine.facts_builder import ZoneFactsBuilder
@@ -125,7 +126,7 @@ async def test_persist_if_changed_writes_only_on_meaningful_change(
 
     builder = ZoneFactsBuilder(db_session)
     repository = RiskRepository(db_session)
-    service = RiskService(repository, builder, DEFAULT_RISK_CONFIG)
+    service = RiskService(repository, builder, EventRepository(db_session), DEFAULT_RISK_CONFIG)
 
     facts = await builder.build_for_zone(zone_id, DEFAULT_RISK_CONFIG)
 

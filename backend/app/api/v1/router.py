@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     equipment,
     events,
+    incidents,
     permits,
     plants,
     recommendations,
@@ -25,3 +26,4 @@ api_router.include_router(permits.router)
 api_router.include_router(events.router)
 api_router.include_router(risk.router)
 api_router.include_router(recommendations.router)
+api_router.include_router(incidents.router)
