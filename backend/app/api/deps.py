@@ -3,6 +3,11 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ai.config import AISettings, get_ai_settings
+from app.ai.context.builder import ContextBuilder
+from app.ai.providers.base import AIProvider
+from app.ai.providers.factory import build_ai_provider
+from app.ai.service import AIService
 from app.database.session import get_db
 from app.repositories.equipment import EquipmentRepository
 from app.repositories.event import EventRepository
@@ -79,3 +84,20 @@ def get_incident_service(session: DbSession) -> IncidentService:
 
 def get_reporting_service(session: DbSession) -> ReportingService:
     return ReportingService(session)
+
+
+def get_ai_context_builder(session: DbSession) -> ContextBuilder:
+    return ContextBuilder(
+        IncidentRepository(session),
+        EventRepository(session),
+        RecommendationRepository(session),
+        ZoneRepository(session),
+    )
+
+
+def get_ai_provider(settings: Annotated[AISettings, Depends(get_ai_settings)]) -> AIProvider:
+    return build_ai_provider(settings)
+
+
+def get_ai_service(provider: Annotated[AIProvider, Depends(get_ai_provider)]) -> AIService:
+    return AIService(provider)

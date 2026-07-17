@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
+    ai,
     equipment,
     events,
     incidents,
@@ -29,3 +30,4 @@ api_router.include_router(risk.router)
 api_router.include_router(recommendations.router)
 api_router.include_router(incidents.router)
 api_router.include_router(reports.router)
+api_router.include_router(ai.router)
