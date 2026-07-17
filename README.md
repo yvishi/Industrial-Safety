@@ -30,36 +30,42 @@ authorizing permit raised alongside it.
 
 ## Running the local testing environment
 
-Two terminals: one for the backend, one for the frontend.
-
-### 1. Backend
+### One-time setup
 
 ```bash
+# backend
 cd backend
 uv sync --group dev
 cp .env.example .env          # adjust DATABASE_URL if your Postgres differs
 uv run alembic upgrade head   # create/update the schema
 uv run python -m scripts.seed # populate the Riverbend Refinery (safe to skip if already seeded)
-uv run uvicorn app.main:app --reload
+
+# frontend, from the repo root
+cp .env.example .env   # only needed once — points the app at the backend above
+npm install
 ```
+
+### Day-to-day: one command
+
+```bash
+npm run dev:all
+```
+
+Starts the backend (`uvicorn --reload`, port 8000) and the frontend (`vite`, port 5173) together
+in one terminal, labeled `[backend]`/`[frontend]` with distinct colors. **Ctrl+C stops both** —
+it's a thin wrapper around [`concurrently`](https://github.com/open-cli-tools/concurrently) with
+`--kill-others`, so if either process dies the other is torn down with it instead of lingering.
+
+Open http://localhost:5173, then go to **Plant** in the sidebar. Data updates on its own
+every few seconds; watch a zone's sensor values or worker list change between refreshes.
+
+Prefer separate terminals (e.g. to restart just one side, or read only its logs)? Run
+`npm run dev:backend` and `npm run dev` in two terminals instead — same processes, unwrapped.
 
 - API: http://localhost:8000/api/v1
 - Interactive docs: http://localhost:8000/docs
 - The simulation engine starts automatically with the API (`SIMULATION_ENABLED=true` by
   default) and ticks every 5 seconds — see `backend/README.md` for what it actually does.
-
-### 2. Frontend
-
-From the repo root:
-
-```bash
-cp .env.example .env   # only needed once — points the app at the backend above
-npm install
-npm run dev
-```
-
-Open http://localhost:5173, then go to **Plant** in the sidebar. Data updates on its own
-every few seconds; watch a zone's sensor values or worker list change between refreshes.
 
 ### Resetting the simulated data
 
