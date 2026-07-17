@@ -12,6 +12,8 @@ import {
   SafetyTrendPage,
   ZoneHazardPage,
   IncidentResponsePage,
+  ReportPreviewPage,
+  AnalyticsLayout,
 } from '@/features/reports'
 import { ROUTES } from './routes'
 
@@ -54,23 +56,33 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.reports,
         element: <Outlet />,
-        handle: { crumb: () => 'Reports' },
+        handle: { crumb: () => 'Safety Analytics' },
         children: [
           { index: true, element: <ReportsHubPage /> },
           {
-            path: 'safety-trend',
-            element: <SafetyTrendPage />,
-            handle: { crumb: () => 'Safety Trend' },
+            element: <AnalyticsLayout />,
+            children: [
+              {
+                path: 'safety-trend',
+                element: <SafetyTrendPage />,
+                handle: { crumb: () => 'Safety Trend' },
+              },
+              {
+                path: 'zones-hazards',
+                element: <ZoneHazardPage />,
+                handle: { crumb: () => 'Zones & Hazards' },
+              },
+              {
+                path: 'incident-response',
+                element: <IncidentResponsePage />,
+                handle: { crumb: () => 'Incident Response' },
+              },
+            ],
           },
           {
-            path: 'zones-hazards',
-            element: <ZoneHazardPage />,
-            handle: { crumb: () => 'Zones & Hazards' },
-          },
-          {
-            path: 'incident-response',
-            element: <IncidentResponsePage />,
-            handle: { crumb: () => 'Incident Response' },
+            path: 'preview',
+            element: <ReportPreviewPage />,
+            handle: { crumb: () => 'Report Preview' },
           },
         ],
       },

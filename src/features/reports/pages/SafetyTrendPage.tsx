@@ -1,5 +1,3 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import {
   Bar,
   BarChart,
@@ -10,17 +8,16 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { ArrowLeft, ClipboardCheck, ClipboardList, TrendingUp, WifiOff } from 'lucide-react'
+import { ClipboardCheck, ClipboardList, TrendingUp, WifiOff } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { ROUTES } from '@/app/routes'
-import { DateRangeFilter, computeRange, type DateRange } from '../components/DateRangeFilter'
+import { useAnalyticsRange } from '../context/AnalyticsRangeContext'
 import { ReportKpiTile } from '../components/ReportKpiTile'
 import { useReportFetch } from '../hooks/useReportFetch'
 import { fetchSafetyTrend } from '../services/reportService'
-import { formatPeriodLabel, trendDirectionLabel, trendDirectionStatus } from '../utils/reportDisplay'
+import { formatPeriodLabel, trendDirectionLabel } from '../utils/reportDisplay'
 
 const RISK_LEVEL_SERIES: Array<{
   key: 'normalCount' | 'lowCount' | 'moderateCount' | 'highCount' | 'criticalCount'
@@ -35,9 +32,10 @@ const RISK_LEVEL_SERIES: Array<{
   { key: 'criticalCount', label: 'Critical', color: 'var(--color-danger)' },
 ]
 
-/** "Is the refinery becoming safer?" — incident volume and risk-level mix over time. */
+/** Historical trend analysis — "is the refinery becoming safer?" Incident volume and
+ * risk-level mix over the analytics range shared across every Safety Analytics page. */
 export function SafetyTrendPage() {
-  const [range, setRange] = useState<DateRange>(() => computeRange(30))
+  const { range } = useAnalyticsRange()
 
   const { data, error, isLoading } = useReportFetch(
     () => fetchSafetyTrend({ since: range.since, until: range.until }),
@@ -46,20 +44,10 @@ export function SafetyTrendPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        to={ROUTES.reports}
-        className="inline-flex w-fit items-center gap-1.5 text-sm text-text-secondary transition-colors hover:text-text-primary"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        Reports overview
-      </Link>
-
       <PageHeader
         title="Safety Trend"
-        description="Incident volume and risk-level mix over time — is the refinery becoming safer?"
+        description="Historical trend analysis — incident volume and risk-level mix over time."
       />
-
-      <DateRangeFilter onChange={setRange} />
 
       {isLoading ? (
         <div className="flex flex-col gap-4">

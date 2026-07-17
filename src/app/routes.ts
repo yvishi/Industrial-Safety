@@ -15,3 +15,8 @@ export function buildZonePath(zoneId: string): string {
 export function buildIncidentPath(incidentId: string): string {
   return `${ROUTES.incidents}/${incidentId}`
 }
+
+export function buildReportPreviewPath(params: { since: string; until: string; label: string }): string {
+  const query = new URLSearchParams({ since: params.since, until: params.until, label: params.label })
+  return `${ROUTES.reports}/preview?${query.toString()}`
+}

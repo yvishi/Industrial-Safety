@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ActivitySquare, MapPinned, Timer, type LucideIcon } from 'lucide-react'
+import { ActivitySquare, FileOutput, MapPinned, Timer, type LucideIcon } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { ROUTES } from '@/app/routes'
@@ -16,19 +16,19 @@ const REPORTS: ReportLink[] = [
     to: `${ROUTES.reports}/safety-trend`,
     icon: ActivitySquare,
     title: 'Safety Trend',
-    description: 'Is the refinery becoming safer over time — incident volume and risk-level mix, period over period.',
+    description: 'Historical trend analysis — is the refinery becoming safer over time, period over period.',
   },
   {
     to: `${ROUTES.reports}/zones-hazards`,
     icon: MapPinned,
     title: 'Zones & Hazards',
-    description: 'Which zones and hazard categories need attention, ranked by incident and trigger counts.',
+    description: 'Operational hotspot analysis — which zones and hazard categories need attention.',
   },
   {
     to: `${ROUTES.reports}/incident-response`,
     icon: Timer,
     title: 'Incident Response',
-    description: 'How fast the team resolves incidents and acts on recommendations, by classification.',
+    description: 'Operational performance analysis — how fast the team resolves incidents and acts on recommendations.',
   },
 ]
 
@@ -36,8 +36,8 @@ export function ReportsHubPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Reports & Analytics"
-        description="Historical trends and analysis across the plant."
+        title="Safety Analytics & Reports"
+        description="Historical insights across the plant. The Executive Dashboard shows what's happening now — this is what's happened over time."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -56,6 +56,12 @@ export function ReportsHubPage() {
             </Card>
           </Link>
         ))}
+      </div>
+
+      <div className="flex items-center gap-3 rounded-lg border border-dashed border-border px-4 py-3.5 text-sm text-text-secondary">
+        <FileOutput className="h-4 w-4 shrink-0 text-text-muted" aria-hidden="true" />
+        Open any analytics page, choose a time range, then use{' '}
+        <span className="font-medium text-text-primary">Generate Report</span> to preview and download a PDF.
       </div>
     </div>
   )

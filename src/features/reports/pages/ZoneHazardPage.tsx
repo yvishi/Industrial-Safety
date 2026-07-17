@@ -1,24 +1,24 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { AlertTriangle, ArrowLeft, MapPinned, WifiOff } from 'lucide-react'
+import { AlertTriangle, MapPinned, WifiOff } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table'
-import { ROUTES, buildZonePath } from '@/app/routes'
-import { DateRangeFilter, computeRange, type DateRange } from '../components/DateRangeFilter'
+import { buildZonePath } from '@/app/routes'
+import { useAnalyticsRange } from '../context/AnalyticsRangeContext'
 import { useReportFetch } from '../hooks/useReportFetch'
 import { fetchZoneHazardReport } from '../services/reportService'
 import { RISK_CATEGORY_LABEL } from '../utils/reportDisplay'
 
 const CHART_MARGIN = { top: 4, right: 24, bottom: 4, left: 4 }
 
-/** "Which zones/hazards need attention?" — cross-zone hazard comparison. */
+/** Operational hotspot analysis — "which zones/hazards need attention?" Cross-zone hazard
+ * comparison over the analytics range shared across every Safety Analytics page. */
 export function ZoneHazardPage() {
   const navigate = useNavigate()
-  const [range, setRange] = useState<DateRange>(() => computeRange(30))
+  const { range } = useAnalyticsRange()
 
   const { data, error, isLoading } = useReportFetch(
     () => fetchZoneHazardReport({ since: range.since, until: range.until }),
@@ -29,20 +29,10 @@ export function ZoneHazardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        to={ROUTES.reports}
-        className="inline-flex w-fit items-center gap-1.5 text-sm text-text-secondary transition-colors hover:text-text-primary"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        Reports overview
-      </Link>
-
       <PageHeader
         title="Zones & Hazards"
-        description="Cross-zone comparison of incidents and hazard categories — which zones and hazards need attention?"
+        description="Operational hotspot analysis — which zones and hazards need attention?"
       />
-
-      <DateRangeFilter onChange={setRange} />
 
       {isLoading ? (
         <div className="flex flex-col gap-4">

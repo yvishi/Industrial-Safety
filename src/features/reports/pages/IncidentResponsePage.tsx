@@ -1,18 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { ArrowLeft, BellRing, CheckCircle2, Timer, WifiOff } from 'lucide-react'
+import { BellRing, CheckCircle2, Timer, WifiOff } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table'
-import { ROUTES } from '@/app/routes'
 import { fetchPlantState } from '@/features/plant/services/plantService'
 import type { Zone } from '@/features/plant'
 import type { IncidentClassification } from '@/features/incidents/types/incident'
 import { incidentClassificationLabel } from '@/features/incidents/utils/incidentDisplay'
-import { DateRangeFilter, computeRange, type DateRange } from '../components/DateRangeFilter'
+import { useAnalyticsRange } from '../context/AnalyticsRangeContext'
 import { ReportKpiTile } from '../components/ReportKpiTile'
 import { useReportFetch } from '../hooks/useReportFetch'
 import { fetchIncidentResponse } from '../services/reportService'
@@ -33,9 +31,10 @@ const CLASSIFICATION_COLOR: Record<IncidentClassification, string> = {
   reportable_incident: 'var(--color-danger)',
 }
 
-/** "How fast do we resolve incidents / act on recommendations?" */
+/** Operational performance analysis — "how fast do we resolve incidents / act on
+ * recommendations?" Uses the analytics range shared across every Safety Analytics page. */
 export function IncidentResponsePage() {
-  const [range, setRange] = useState<DateRange>(() => computeRange(30))
+  const { range } = useAnalyticsRange()
   const [zones, setZones] = useState<Zone[]>([])
   const [zoneId, setZoneId] = useState<string>('')
 
@@ -58,40 +57,30 @@ export function IncidentResponsePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        to={ROUTES.reports}
-        className="inline-flex w-fit items-center gap-1.5 text-sm text-text-secondary transition-colors hover:text-text-primary"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        Reports overview
-      </Link>
-
       <PageHeader
         title="Incident Response"
-        description="How fast incidents get resolved and recommendations get acted on."
+        description="Operational performance analysis — how fast incidents get resolved and recommendations get acted on."
+        actions={
+          <div className="flex items-center gap-2">
+            <label htmlFor="response-zone" className="text-sm font-medium text-text-primary">
+              Zone
+            </label>
+            <select
+              id="response-zone"
+              value={zoneId}
+              onChange={(event) => setZoneId(event.target.value)}
+              className="h-9 rounded-md border border-border bg-surface px-3 text-sm text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              <option value="">All zones</option>
+              {zones.map((zone) => (
+                <option key={zone.id} value={zone.id}>
+                  {zone.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        }
       />
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <DateRangeFilter onChange={setRange} />
-        <div className="flex items-center gap-2">
-          <label htmlFor="response-zone" className="text-sm font-medium text-text-primary">
-            Zone
-          </label>
-          <select
-            id="response-zone"
-            value={zoneId}
-            onChange={(event) => setZoneId(event.target.value)}
-            className="h-9 rounded-md border border-border bg-surface px-3 text-sm text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          >
-            <option value="">All zones</option>
-            {zones.map((zone) => (
-              <option key={zone.id} value={zone.id}>
-                {zone.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
 
       {isLoading ? (
         <div className="flex flex-col gap-4">

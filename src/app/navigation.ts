@@ -15,6 +15,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Plant', path: ROUTES.plant, icon: Factory },
   { label: 'Incidents', path: ROUTES.incidents, icon: AlertTriangle },
   { label: 'Timeline', path: ROUTES.timeline, icon: History },
-  { label: 'Reports', path: ROUTES.reports, icon: FileText },
+  { label: 'Safety Analytics', path: ROUTES.reports, icon: FileText },
   { label: 'Settings', path: ROUTES.settings, icon: Settings },
 ]

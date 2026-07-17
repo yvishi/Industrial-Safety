@@ -37,16 +37,27 @@ export function trendDirectionLabel(direction: TrendDirection): string {
   }
 }
 
-/** Renders an em dash for null/undefined instead of "0h" or "NaNh". */
+/** Renders an em dash for null/undefined. Below 60 minutes, shows minutes ("18 min") instead
+ * of flattening a fast resolution to a meaningless "0.0h" — realistic for simulated/short
+ * response times, not just long-running ones. */
 export function formatHours(hours: number | null | undefined): string {
   if (hours === null || hours === undefined) return '—'
+  if (hours < 1) {
+    const minutes = Math.round(hours * 60)
+    return minutes < 1 ? '< 1 min' : `${minutes} min`
+  }
   return `${hours.toFixed(1)}h`
 }
 
-/** Renders an em dash for null/undefined instead of "0m" or "NaNm". */
+/** Same rule as formatHours, for values that arrive in minutes (e.g. time-to-acknowledge):
+ * below 60 minutes shows minutes, otherwise converts to hours. */
 export function formatMinutes(minutes: number | null | undefined): string {
   if (minutes === null || minutes === undefined) return '—'
-  return `${minutes.toFixed(1)}m`
+  if (minutes < 60) {
+    const rounded = Math.round(minutes)
+    return rounded < 1 ? '< 1 min' : `${rounded} min`
+  }
+  return `${(minutes / 60).toFixed(1)}h`
 }
 
 /** Chart x-axis label for one period, shaped by its granularity — "Jun 17" for day/week,
@@ -57,4 +68,18 @@ export function formatPeriodLabel(periodStart: string, granularity: PeriodGranul
     return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
   }
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+/** "Jun 17, 2026, 3:04 PM – Jul 17, 2026, 3:04 PM" — the exact window a report/analytics page
+ * covers, for display under a range label like "Last 30 Days". */
+export function formatDateRange(since: string, until: string): string {
+  const format = (iso: string) =>
+    new Date(iso).toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+  return `${format(since)} – ${format(until)}`
 }
