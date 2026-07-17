@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
-import { ArrowLeft, WifiOff } from 'lucide-react'
+import { ArrowLeft, History, WifiOff } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Badge } from '@/components/ui/Badge'
 import { StatusPill } from '@/components/ui/StatusPill'
 import { Section } from '@/components/ui/Section'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { buttonVariants } from '@/components/ui/Button'
 import { ROUTES, buildZonePath } from '@/app/routes'
 import { usePolling } from '@/hooks/usePolling'
 import { useBreadcrumbLabel } from '@/hooks/useBreadcrumbLabel'
 import { ApiError } from '@/services/httpClient'
 import { RISK_LEVEL_LABEL, riskLevelStatus } from '@/features/plant/utils/riskDisplay'
-import { fetchEvents } from '@/features/plant/services/plantService'
 import { fetchIncident } from '../services/incidentService'
 import type { Incident } from '../types/incident'
 import {
@@ -24,7 +24,6 @@ import {
   incidentStatusBadgeVariant,
 } from '../utils/incidentDisplay'
 import { IncidentNarrative } from '../components/IncidentNarrative'
-import { IncidentTimeline } from '../components/IncidentTimeline'
 import { IncidentRecommendations } from '../components/IncidentRecommendations'
 import { IncidentActionsPanel } from '../components/IncidentActionsPanel'
 
@@ -41,13 +40,6 @@ export function IncidentDetailPage() {
 
   const { data: polled, error, isLoading } = usePolling(
     () => (incidentId ? fetchIncident(incidentId) : Promise.reject(new Error('Missing incident id'))),
-    POLL_INTERVAL_MS,
-  )
-  const { data: eventPage } = usePolling(
-    () =>
-      incidentId
-        ? fetchEvents({ incidentId, pageSize: 100 })
-        : Promise.resolve({ items: [], total: 0, page: 1, pageSize: 100 }),
     POLL_INTERVAL_MS,
   )
 
@@ -94,12 +86,21 @@ export function IncidentDetailPage() {
       <PageHeader
         title={incident.title}
         actions={
-          <Link
-            to={buildZonePath(incident.primaryZoneId)}
-            className="text-sm text-text-secondary underline-offset-2 hover:text-text-primary hover:underline"
-          >
-            {incident.zoneName}
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              to={buildZonePath(incident.primaryZoneId)}
+              className="text-sm text-text-secondary underline-offset-2 hover:text-text-primary hover:underline"
+            >
+              {incident.zoneName}
+            </Link>
+            <Link
+              to={`${ROUTES.timeline}?incidentId=${incident.id}`}
+              className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+            >
+              <History className="h-3.5 w-3.5" aria-hidden="true" />
+              View Timeline
+            </Link>
+          </div>
         }
       />
 
@@ -157,10 +158,6 @@ export function IncidentDetailPage() {
           incidentId={incident.id}
           includeResolved={incident.status !== 'open'}
         />
-      </Section>
-
-      <Section title="Timeline" description="Every event tied to this incident, in order.">
-        <IncidentTimeline events={eventPage?.items ?? []} />
       </Section>
 
       {incident.status !== 'closed' && (

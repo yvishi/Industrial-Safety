@@ -2,13 +2,12 @@ import { createBrowserRouter, Outlet } from 'react-router-dom'
 import { AppLayout } from '@/layouts/AppLayout'
 import {
   DashboardPage,
-  TimelinePage,
   ReportsPage,
   SettingsPage,
   NotFoundPage,
 } from '@/pages'
 import { PlantOverviewPage, ZoneDetailPage } from '@/features/plant'
-import { IncidentsListPage, IncidentDetailPage } from '@/features/incidents'
+import { IncidentsListPage, IncidentDetailPage, TimelinePage } from '@/features/incidents'
 import { ROUTES } from './routes'
 
 export const router = createBrowserRouter([
