@@ -21,6 +21,7 @@ from app.services.incident import IncidentService
 from app.services.permit import PermitService
 from app.services.plant import PlantService
 from app.services.recommendation import RecommendationService
+from app.services.reporting import ReportingService
 from app.services.risk import RiskService
 from app.services.sensor import SensorService
 from app.services.worker import WorkerService
@@ -74,3 +75,7 @@ def get_incident_service(session: DbSession) -> IncidentService:
         EventRepository(session),
         ZoneRepository(session),
     )
+
+
+def get_reporting_service(session: DbSession) -> ReportingService:
+    return ReportingService(session)

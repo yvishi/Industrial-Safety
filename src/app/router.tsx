@@ -2,12 +2,17 @@ import { createBrowserRouter, Outlet } from 'react-router-dom'
 import { AppLayout } from '@/layouts/AppLayout'
 import {
   DashboardPage,
-  ReportsPage,
   SettingsPage,
   NotFoundPage,
 } from '@/pages'
 import { PlantOverviewPage, ZoneDetailPage } from '@/features/plant'
 import { IncidentsListPage, IncidentDetailPage, TimelinePage } from '@/features/incidents'
+import {
+  ReportsHubPage,
+  SafetyTrendPage,
+  ZoneHazardPage,
+  IncidentResponsePage,
+} from '@/features/reports'
 import { ROUTES } from './routes'
 
 export const router = createBrowserRouter([
@@ -46,7 +51,29 @@ export const router = createBrowserRouter([
         ],
       },
       { path: ROUTES.timeline, element: <TimelinePage />, handle: { crumb: () => 'Timeline' } },
-      { path: ROUTES.reports, element: <ReportsPage />, handle: { crumb: () => 'Reports' } },
+      {
+        path: ROUTES.reports,
+        element: <Outlet />,
+        handle: { crumb: () => 'Reports' },
+        children: [
+          { index: true, element: <ReportsHubPage /> },
+          {
+            path: 'safety-trend',
+            element: <SafetyTrendPage />,
+            handle: { crumb: () => 'Safety Trend' },
+          },
+          {
+            path: 'zones-hazards',
+            element: <ZoneHazardPage />,
+            handle: { crumb: () => 'Zones & Hazards' },
+          },
+          {
+            path: 'incident-response',
+            element: <IncidentResponsePage />,
+            handle: { crumb: () => 'Incident Response' },
+          },
+        ],
+      },
       { path: ROUTES.settings, element: <SettingsPage />, handle: { crumb: () => 'Settings' } },
       { path: '*', element: <NotFoundPage />, handle: { crumb: () => 'Not Found' } },
     ],

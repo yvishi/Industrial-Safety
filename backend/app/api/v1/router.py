@@ -7,6 +7,7 @@ from app.api.v1.endpoints import (
     permits,
     plants,
     recommendations,
+    reports,
     risk,
     sensors,
     state,
@@ -27,3 +28,4 @@ api_router.include_router(events.router)
 api_router.include_router(risk.router)
 api_router.include_router(recommendations.router)
 api_router.include_router(incidents.router)
+api_router.include_router(reports.router)
